@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isPersonalBootstrapOrg(orgId) {
+      return signedIn() && orgId == ('org_' + request.auth.uid);
+    }
+
+    function memberPath(orgId, uid) {
+      return /databases/$(database)/documents/orgs/$(orgId)/members/$(uid);
+    }
+
+    function isOrgMember(orgId) {
+      return signedIn() && exists(memberPath(orgId, request.auth.uid));
+    }
+
+    function jobPath(jobId) {
+      return /databases/$(database)/documents/jobs/$(jobId);
+    }
+
+    function isJobMember(jobId) {
+      return signedIn()
+        && exists(jobPath(jobId))
+        && isOrgMember(get(jobPath(jobId)).data.orgId);
+    }
+
+    function isJobMemberAfter(jobId) {
+      return signedIn()
+        && existsAfter(jobPath(jobId))
+        && isOrgMember(getAfter(jobPath(jobId)).data.orgId);
+    }
+
+    match /betaAllowlist/{uid} {
+      allow get: if isSelf(uid);
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{uid}/projects/{projectId} {
+      allow read, write: if isSelf(uid);
+
+      match /dataShards/{shardId} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    match /orgs/{orgId} {
+      allow read: if isOrgMember(orgId) || isPersonalBootstrapOrg(orgId);
+      allow create: if signedIn()
+        && orgId == ('org_' + request.auth.uid)
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isOrgMember(orgId);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isOrgMember(orgId) || (isPersonalBootstrapOrg(orgId) && isSelf(uid));
+        allow create: if isSelf(uid) && orgId == ('org_' + request.auth.uid);
+        allow update: if isOrgMember(orgId);
+        allow delete: if false;
+      }
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isOrgMember(resource.data.orgId);
+      allow create: if signedIn()
+        && isOrgMember(request.resource.data.orgId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow update: if isOrgMember(resource.data.orgId)
+        && request.resource.data.orgId == resource.data.orgId;
+      allow delete: if false;
+
+      match /stages/{stageId} {
+        allow read: if isJobMember(jobId);
+        allow create, update, delete: if isJobMemberAfter(jobId);
+      }
+
+      match /activity/{eventId} {
+        allow read: if isJobMember(jobId);
+        allow create: if isJobMemberAfter(jobId);
+        allow update, delete: if false;
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isJobMember(jobId);
+        allow create: if isJobMemberAfter(jobId)
+          && request.resource.data.orgId == getAfter(jobPath(jobId)).data.orgId
+          && request.resource.data.jobId == jobId
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+        allow update: if isJobMemberAfter(jobId)
+          && request.resource.data.orgId == resource.data.orgId
+          && request.resource.data.jobId == resource.data.jobId;
+        allow delete: if false;
+
+        match /subtasks/{subtaskId} {
+          allow read: if isJobMember(jobId);
+          allow create, update, delete: if isJobMemberAfter(jobId);
+        }
+
+        match /comments/{commentId} {
+          allow read: if isJobMember(jobId);
+          allow create, update, delete: if isJobMemberAfter(jobId);
+        }
+
+        match /activity/{eventId} {
+          allow read: if isJobMember(jobId);
+          allow create: if isJobMemberAfter(jobId);
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    match /{path=**}/tasks/{taskId} {
+      allow list: if signedIn() && isOrgMember(resource.data.orgId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

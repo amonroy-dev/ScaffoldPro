@@ -1,0 +1,283 @@
+.docked-inspector {
+  position: fixed;
+  /* below toolbar (48px) + 12px margin, plus iOS safe-area */
+  top: calc(60px + env(safe-area-inset-top));
+  left: 12px;
+  width: 300px;
+  max-height: calc(100vh - (72px + env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  z-index: 160;
+
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(120, 120, 160, 0.25);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(30, 30, 60, 0.18);
+
+  color: #1e1e28;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  transition: width 0.18s ease;
+}
+
+@supports (height: 100dvh) {
+  .docked-inspector {
+    max-height: calc(100dvh - (72px + env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  }
+}
+
+/* Mobile: avoid the inspector covering the whole canvas; use full-width sheet */
+@media (max-width: 640px) {
+  .docked-inspector {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .docked-inspector.dock-right {
+    left: 12px;
+    right: 12px;
+  }
+}
+
+.docked-inspector.dock-right {
+  left: auto;
+  right: 12px;
+}
+
+.docked-inspector.is-collapsed {
+  width: 52px;
+}
+
+.docked-inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid rgba(120, 120, 160, 0.2);
+}
+
+.docked-inspector-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(30, 30, 40, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docked-inspector.is-collapsed .docked-inspector-title {
+  display: none;
+}
+
+.docked-inspector-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(120, 120, 160, 0.25);
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  color: rgba(30, 30, 40, 0.75);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.docked-inspector-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(120, 120, 160, 0.4);
+}
+
+.docked-inspector-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 8px 10px;
+  border-bottom: 1px solid rgba(120, 120, 160, 0.16);
+}
+
+.docked-inspector-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 120, 160, 0.18);
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(30, 30, 40, 0.75);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-size: 12px;
+}
+
+.docked-inspector-tab:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(120, 120, 160, 0.35);
+}
+
+.docked-inspector-tab.active {
+  border-color: rgba(74, 158, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.16);
+}
+
+.docked-inspector.is-collapsed .docked-inspector-tabs {
+  flex-direction: column;
+  padding: 8px;
+}
+
+.docked-inspector.is-collapsed .docked-inspector-tab {
+  width: 100%;
+  padding: 0;
+}
+
+.docked-inspector-body {
+  overflow: auto;
+}
+
+/* Collapsed = slim rail (icons only). Hide body content to avoid cramped/scrollable UI. */
+.docked-inspector.is-collapsed .docked-inspector-body {
+  display: none;
+}
+
+/* Workspace tab styling */
+.inspector-workspace {
+  padding: 12px;
+}
+
+.inspector-section {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(120, 120, 160, 0.14);
+}
+
+.inspector-section:last-child {
+  border-bottom: none;
+}
+
+.inspector-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(30, 30, 40, 0.8);
+}
+
+.inspector-muted {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(30, 30, 40, 0.55);
+}
+
+.inspector-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inspector-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(30, 30, 40, 0.75);
+}
+
+.inspector-form input[type="text"],
+.inspector-form input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 120, 160, 0.28);
+  background: rgba(255, 255, 255, 0.7);
+  color: #1e1e28;
+  outline: none;
+}
+
+.inspector-form input[type="number"]:focus {
+  border-color: rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.12);
+}
+
+/* Checkbox row - inline checkbox + label */
+.inspector-checkbox-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.inspector-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4a9eff;
+  cursor: pointer;
+}
+
+.inspector-checkbox-row span {
+  font-size: 12px;
+  color: rgba(30, 30, 40, 0.8);
+  user-select: none;
+}
+
+/* Slider row - slider + number input side by side */
+.inspector-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inspector-slider-row input[type="range"] {
+  flex: 1;
+  height: 6px;
+  accent-color: #4a9eff;
+  cursor: pointer;
+}
+
+.inspector-slider-row input[type="number"] {
+  width: 56px !important;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+/* Button styles */
+.inspector-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.inspector-btn-secondary {
+  background: rgba(120, 120, 160, 0.12);
+  border: 1px solid rgba(120, 120, 160, 0.28);
+  color: rgba(30, 30, 40, 0.8);
+}
+
+.inspector-btn-secondary:hover {
+  background: rgba(120, 120, 160, 0.2);
+  border-color: rgba(120, 120, 160, 0.4);
+}
+
+/* Hint text */
+.inspector-hint {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(120, 120, 160, 0.12);
+  font-size: 10px;
+  color: rgba(30, 30, 40, 0.5);
+  line-height: 1.4;
+}

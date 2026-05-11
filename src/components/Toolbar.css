@@ -1,0 +1,443 @@
+/* Professional CAD Toolbar - Blender/Fusion360 inspired */
+.toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* iOS notch safe-area support */
+  height: calc(48px + env(safe-area-inset-top));
+  background: linear-gradient(180deg, #2d2d3a 0%, #1e1e28 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  /* Keep the interactive content below the notch/status bar */
+  padding: env(safe-area-inset-top) 12px 0 12px;
+  gap: 12px;
+  /* Keep toolbar above the WebGL canvas + inspector/toggles, but below modal overlays */
+  z-index: 180;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 1180px) {
+  .toolbar {
+    gap: 10px;
+  }
+
+  .toolbar-project-meta {
+    max-width: 320px;
+  }
+
+  .toolbar-project-name {
+    max-width: 180px;
+  }
+
+  .toolbar-save-pill span {
+    display: none;
+  }
+
+  .toolbar-divider {
+    margin: 0 6px;
+  }
+}
+
+@media (max-width: 980px) {
+  .toolbar-project-meta {
+    display: none;
+  }
+}
+
+/* Mobile: avoid hard min-widths causing toolbar overflow */
+@media (max-width: 640px) {
+  .toolbar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 8px;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .toolbar-group {
+    padding: 3px;
+  }
+
+  .toolbar-divider {
+    margin: 0 4px;
+  }
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.toolbar-left {
+  overflow: hidden;
+}
+
+.toolbar-right {
+  justify-content: flex-end;
+  justify-self: end;
+}
+
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  justify-self: center;
+}
+
+.toolbar-nav-btn {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.toolbar-nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.toolbar-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  max-width: min(520px, 100%);
+}
+
+.toolbar-project-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: clamp(140px, 18vw, 300px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar-save-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toolbar-save-pill.saving {
+  border-color: rgba(74, 158, 255, 0.35);
+  background: rgba(74, 158, 255, 0.12);
+  color: rgba(220, 240, 255, 0.95);
+}
+
+.toolbar-save-pill.saved {
+  border-color: rgba(70, 200, 140, 0.30);
+  background: rgba(70, 200, 140, 0.10);
+}
+
+.toolbar-save-pill.error {
+  border-color: rgba(255, 99, 132, 0.38);
+  background: rgba(255, 99, 132, 0.12);
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.toolbar-history-group {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/*
+ * Catalog slot is contextual: it only appears in Scaffold mode.
+ * High-end behavior: animate the layout expansion rather than popping.
+ */
+.catalog-toolbar-slot {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: max-width 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+
+.catalog-toolbar-slot.visible {
+  max-width: 520px; /* enough for the catalog trigger + dropdown */
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  /* Allow dropdown menus to extend outside the slot (otherwise they get clipped). */
+  overflow: visible;
+}
+
+/* When not in Scaffold mode, we still show Catalog and let a click switch modes.
+ * This styling is only a subtle cue.
+ */
+.catalog-toolbar-slot.disabled {
+  opacity: 0.8;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 8px;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #a0a0b0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+/* Override base toolbar button sizing for the left "Projects" navigation button.
+ * Needs to come AFTER .toolbar-btn, otherwise width: 36px wins and the hover box looks cut off.
+ */
+.toolbar-btn.toolbar-nav-btn {
+  width: auto;
+  padding: 0 10px;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.toolbar-btn.toolbar-map-trigger {
+  width: auto;
+  padding: 0 10px;
+  gap: 7px;
+  justify-content: flex-start;
+}
+
+.toolbar-map-trigger-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: inherit;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Disabled (mode-gated) toolbar controls */
+.toolbar-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolbar-btn[aria-disabled='true']:hover {
+  background: transparent;
+  color: #a0a0b0;
+  border-color: transparent;
+}
+
+.toolbar-btn[aria-disabled='true'] .dropdown-arrow {
+  opacity: 0.35;
+}
+
+.toolbar-btn.active {
+  background: linear-gradient(180deg, #4a9eff 0%, #3d8ae0 100%);
+  color: #ffffff;
+  border-color: rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 12px rgba(74, 158, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.toolbar-btn.active:hover {
+  background: linear-gradient(180deg, #5aa8ff 0%, #4a9eff 100%);
+}
+
+/* Dropdown */
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-trigger {
+  width: auto;
+  padding: 0 8px;
+  gap: 6px;
+}
+
+.dropdown-arrow {
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-trigger:hover .dropdown-arrow {
+  opacity: 1;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 180px;
+  background: linear-gradient(180deg, #2a2a38 0%, #222230 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  animation: dropdownFadeIn 0.15s ease;
+  z-index: 190;
+}
+
+/* Right-aligned dropdown (for toolbar right-side menus) */
+.dropdown-menu.align-right {
+	left: auto;
+	right: 0;
+}
+
+/* DXF export popover tweaks */
+.dxf-menu {
+	min-width: 260px;
+}
+
+.dropdown-check {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	min-width: 16px;
+}
+
+.dropdown-check-spacer {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+
+.dropdown-hint {
+	padding: 8px 10px 6px;
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.65);
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dropdown-hint code {
+	color: rgba(255, 255, 255, 0.85);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6a6a7a;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 4px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #c0c0d0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: rgba(74, 158, 255, 0.15);
+  color: #ffffff;
+}
+
+.dropdown-item.active {
+  background: rgba(74, 158, 255, 0.25);
+  color: #4a9eff;
+}
+
+.dropdown-item svg {
+  opacity: 0.7;
+}
+
+.dropdown-item:hover svg,
+.dropdown-item.active svg {
+  opacity: 1;
+}
+
+/* Status indicator */
+.toolbar-status {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -28px;
+  pointer-events: none;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #7a7a8a;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}

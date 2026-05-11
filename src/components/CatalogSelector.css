@@ -1,0 +1,184 @@
+/* High-end catalog dropdown panel that matches Toolbar.css theme */
+
+.catalog-trigger-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d0d0de;
+  letter-spacing: 0.01em;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-menu {
+  width: 360px;
+  padding: 8px;
+}
+
+.catalog-section {
+  padding: 8px 6px;
+}
+
+.catalog-section + .catalog-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.catalog-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7a7a8a;
+  padding: 0 6px 8px;
+}
+
+.catalog-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.catalog-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8c8d8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.catalog-pill:hover {
+  background: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.28);
+  color: #ffffff;
+}
+
+.catalog-pill.active {
+  background: rgba(74, 158, 255, 0.22);
+  border-color: rgba(74, 158, 255, 0.5);
+  color: #4a9eff;
+  box-shadow: 0 0 0 1px rgba(74, 158, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.catalog-parts {
+  max-height: 220px;
+  overflow: auto;
+  padding: 2px 2px;
+}
+
+.catalog-part {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 10px 10px;
+  margin: 2px 0;
+  background: transparent;
+  color: #c0c0d0;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.catalog-part:hover {
+  background: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.2);
+  color: #ffffff;
+}
+
+.catalog-part.active {
+  background: rgba(74, 158, 255, 0.22);
+  border-color: rgba(74, 158, 255, 0.45);
+  color: #ffffff;
+}
+
+.catalog-part-primary {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.catalog-part-secondary {
+  font-size: 11px;
+  color: #8f8fa3;
+  margin-top: 2px;
+}
+
+.catalog-part:hover .catalog-part-secondary,
+.catalog-part.active .catalog-part-secondary {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.catalog-empty {
+  padding: 10px 10px;
+  color: #8f8fa3;
+  font-size: 12px;
+}
+
+.catalog-summary {
+  margin-top: 8px;
+  padding: 10px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.catalog-summary-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7a7a8a;
+  margin-bottom: 6px;
+}
+
+.catalog-summary-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.catalog-summary-strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e6e6f0;
+}
+
+.catalog-summary-muted {
+  font-size: 12px;
+  color: #a8a8ba;
+}
+
+.catalog-summary-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #a8a8ba;
+}
+
+
+/* Auto-select mode styling for ledgers/braces/trusses */
+.catalog-auto-select {
+  padding: 16px 12px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(74, 158, 255, 0.08) 0%, rgba(100, 200, 150, 0.06) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(74, 158, 255, 0.15);
+}
+
+.catalog-auto-select-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4a9eff;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.catalog-auto-select-desc {
+  font-size: 12px;
+  color: #a8a8ba;
+  line-height: 1.5;
+}

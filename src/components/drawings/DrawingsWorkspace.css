@@ -1,0 +1,2818 @@
+.drawing-workspace {
+  min-height: 100vh;
+  background: #B0B0B0;
+  color: #d4d4d4;
+  font-family: 'Inter', 'SF Pro Text', -apple-system, system-ui, sans-serif;
+}
+
+.drawing-shell-chrome {
+	background: #303438;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	box-shadow: none;
+}
+
+/* ─── CAD Application Header ─── */
+.cad-ribbon-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.cad-app-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  background: #262a2e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  color: #9a9ea3;
+}
+
+.cad-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #9a9ea3;
+  cursor: pointer;
+}
+.cad-header-btn:hover { background: rgba(255,255,255,0.08); color: #d4d4d4; }
+.cad-header-btn:disabled { opacity: 0.35; cursor: default; }
+.cad-header-btn:disabled:hover { background: transparent; color: #9a9ea3; }
+
+.cad-header-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.cad-header-project {
+  font-weight: 600;
+  color: #d4d4d4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.cad-header-sheet {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.cad-header-spacer { flex: 1; }
+
+.cad-header-save {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.cad-header-save.saving { background: rgba(91, 155, 213, 0.2); color: #9ec5e8; }
+.cad-header-save.saved { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+.cad-header-save.error { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+
+/* ─── CAD Command Ribbon ─── */
+.cad-command-ribbon {
+  background: #303438;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cad-ribbon-families {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cad-ribbon-family-tab {
+  padding: 5px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #8a8e93;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: color 100ms, border-color 100ms;
+}
+.cad-ribbon-family-tab:hover { color: #c0c0c0; }
+.cad-ribbon-family-tab.active {
+  color: #d4d4d4;
+  border-bottom-color: #5b9bd5;
+}
+
+.cad-ribbon-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  min-height: 44px;
+}
+
+.cad-ribbon-family-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(160, 160, 160, 0.5);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.cad-ribbon-tool-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.cad-ribbon-tool-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #9a9ea3;
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
+  min-width: 44px;
+}
+.cad-ribbon-tool-btn:hover { background: rgba(255,255,255,0.06); color: #d4d4d4; }
+.cad-ribbon-tool-btn.active {
+  background: rgba(91, 155, 213, 0.15);
+  border-color: rgba(91, 155, 213, 0.3);
+  color: #9ec5e8;
+}
+
+.cad-ribbon-tool-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ─── Legacy topbar (keep for backward compat during transition) ─── */
+.drawing-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: calc(12px + env(safe-area-inset-top)) 18px 12px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.drawing-topbar-left,
+.drawing-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+	gap: 8px;
+  align-items: center;
+}
+
+.drawing-topbar-actions {
+  justify-content: flex-end;
+}
+
+.drawing-topbar-menubar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.drawing-menu-container {
+	position: relative;
+}
+
+.drawing-topbar-meta {
+  min-width: 0;
+}
+
+.drawing-topbar-kicker,
+.drawing-panel-label,
+.drawing-titleblock-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+	color: rgba(180, 180, 180, 0.7);
+}
+
+.drawing-topbar-title {
+  margin-top: 4px;
+	font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawing-save-pill,
+.drawing-action-btn,
+.drawing-list-item {
+	border-radius: 3px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drawing-save-pill {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+	background: rgba(0, 0, 0, 0.2);
+}
+
+.drawing-save-pill.saving { background: rgba(91, 155, 213, 0.18); }
+.drawing-save-pill.saved { background: rgba(70, 180, 120, 0.15); }
+.drawing-save-pill.error { background: rgba(220, 80, 80, 0.18); }
+
+.drawing-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+	padding: 9px 12px;
+	background: #3a3e42;
+  color: #d4d4d4;
+  cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.drawing-action-btn.accent {
+	background: #3d5a7a;
+	border-color: rgba(91, 155, 213, 0.3);
+}
+
+.drawing-action-btn.compact {
+	padding: 7px 10px;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.drawing-action-btn[aria-disabled='true'] {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.drawing-action-btn:hover:not([aria-disabled='true']):not(:disabled),
+.drawing-action-btn.active {
+	background: #454a4f;
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+.drawing-menu-trigger {
+	min-width: 88px;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.drawing-menu-arrow {
+	opacity: 0.72;
+	transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.drawing-menu-trigger.active .drawing-menu-arrow {
+	transform: rotate(180deg);
+	opacity: 1;
+}
+
+.drawing-menu-panel {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	min-width: 260px;
+	padding: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: #343840;
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+	z-index: 50;
+}
+
+.drawing-menu-panel.align-right {
+	left: auto;
+	right: 0;
+}
+
+.drawing-menu-header {
+	padding: 8px 10px 6px;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(180, 180, 180, 0.72);
+}
+
+.drawing-menu-item {
+	display: grid;
+	gap: 3px;
+	width: 100%;
+	padding: 10px;
+	border: 0;
+	border-radius: 3px;
+	background: transparent;
+	color: #e5edf9;
+	text-align: left;
+	cursor: pointer;
+}
+
+.drawing-menu-item:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.drawing-menu-item:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.drawing-menu-item-label {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.drawing-menu-item-hint {
+	font-size: 11px;
+	line-height: 1.35;
+	color: rgba(203, 213, 225, 0.72);
+}
+
+.drawing-menu-summary {
+	display: grid;
+	gap: 6px;
+	margin: 0 6px 8px;
+	padding: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.15);
+}
+
+.drawing-menu-summary-label {
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(180, 180, 180, 0.72);
+}
+
+.drawing-menu-form-stack {
+	display: grid;
+	gap: 10px;
+	padding: 0 10px 10px;
+}
+
+.drawing-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+/* ── Tool Palette (Chief Architect style) ──────────────────────────────────── */
+.cad-tool-palette {
+  width: 180px;
+  background: #f5f5f5;
+  border-right: 1px solid #d0d0d0;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.cad-tool-palette-header {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 11px;
+  color: #555;
+  background: #e8e8e8;
+  border-bottom: 1px solid #d0d0d0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cad-tool-palette-list {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.cad-tool-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cad-tool-palette-item:hover {
+  background: #dbeafe;
+}
+
+.cad-tool-palette-item.active {
+  background: #bfdbfe;
+  font-weight: 600;
+}
+
+.cad-tool-palette-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #444;
+}
+
+.cad-tool-palette-item.active .cad-tool-palette-icon {
+  color: #5b9bd5;
+}
+
+.cad-tool-palette-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.drawing-rail {
+  padding: 18px;
+	border-radius: 8px;
+  align-self: start;
+	max-height: calc(100vh - 108px);
+	overflow: auto;
+}
+
+.drawing-rail.right {
+	position: sticky;
+	top: 88px;
+}
+
+.drawing-panel + .drawing-panel {
+  margin-top: 18px;
+}
+
+.drawing-panel h2,
+.drawing-panel h3 {
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+.drawing-panel p,
+.drawing-checklist,
+.drawing-metrics {
+  margin-top: 10px;
+  color: rgba(226, 235, 255, 0.82);
+  line-height: 1.55;
+}
+
+.drawing-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.drawing-list.compact {
+  gap: 8px;
+}
+
+.drawing-list-item {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drawing-list-item span {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.62);
+}
+
+.drawing-list-item.active {
+  background: rgba(91, 155, 213, 0.12);
+  border-color: rgba(91, 155, 213, 0.3);
+}
+
+.drawing-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.drawing-item-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(210, 210, 210, 0.88);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.drawing-panel-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.drawing-panel-actions.split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.drawing-panel-actions .drawing-action-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.drawing-palette-tabs {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 6px;
+	margin-top: 14px;
+	padding: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.15);
+}
+
+.drawing-palette-tab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 10px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: rgba(210, 210, 210, 0.72);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.drawing-palette-tab:hover,
+.drawing-palette-tab[aria-selected='true'],
+.drawing-palette-tab.active {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.12);
+	color: #e0e0e0;
+}
+
+.drawing-palette-list {
+	display: grid;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.drawing-palette-list.compact {
+	gap: 8px;
+}
+
+.drawing-palette-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: start;
+	padding: 12px;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: rgba(255, 255, 255, 0.03);
+	box-shadow: none;
+}
+
+.drawing-palette-row.active {
+	background: rgba(91, 155, 213, 0.12);
+	border-color: rgba(91, 155, 213, 0.3);
+}
+
+.drawing-palette-row-body {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+
+.drawing-palette-row-body > span {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: rgba(196, 210, 242, 0.62);
+}
+
+.drawing-palette-row-body strong {
+	line-height: 1.35;
+	color: #f8fbff;
+}
+
+.drawing-palette-row-actions {
+	display: grid;
+	gap: 8px;
+	align-content: start;
+}
+
+.drawing-palette-row-actions .drawing-action-btn {
+	justify-content: center;
+	min-width: 96px;
+}
+
+.drawing-layout-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.drawing-layout-action-grid .drawing-action-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 9px 10px;
+}
+
+.drawing-action-btn.danger {
+  background: rgba(220, 80, 80, 0.18);
+  border-color: rgba(220, 80, 80, 0.28);
+  color: #f0c0c0;
+}
+
+.drawing-canvas-area {
+  min-width: 0;
+	display: grid;
+	gap: 14px;
+	align-content: start;
+}
+
+.drawing-workspace-tabs {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px 0;
+	overflow-x: auto;
+}
+
+.drawing-workspace-tab-shell {
+	display: inline-flex;
+	align-items: stretch;
+	border: 1px solid #cbd5e1;
+	border-radius: 10px 10px 0 0;
+	background: rgba(241, 245, 249, 0.9);
+	overflow: hidden;
+}
+
+.drawing-workspace-tab-shell.active {
+	border-color: #94a3b8;
+	background: #ffffff;
+	box-shadow: 0 1px 0 #ffffff;
+}
+
+.drawing-workspace-tab {
+	border: 1px solid #cbd5e1;
+	border-bottom-color: #94a3b8;
+	border-radius: 10px 10px 0 0;
+	background: rgba(241, 245, 249, 0.9);
+	color: #334155;
+	padding: 8px 14px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.drawing-workspace-tab:hover {
+	background: #f8fafc;
+	border-color: #94a3b8;
+}
+
+.drawing-workspace-tab.active {
+	background: #ffffff;
+	border-color: #94a3b8;
+	border-bottom-color: #ffffff;
+	color: #0f172a;
+}
+
+.drawing-workspace-tab-shell .drawing-workspace-tab {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.drawing-workspace-tab-close {
+	border: 0;
+	border-left: 1px solid rgba(148, 163, 184, 0.55);
+	background: transparent;
+	color: #64748b;
+	padding: 0 10px;
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.drawing-workspace-tab-close:hover {
+	background: rgba(226, 232, 240, 0.9);
+	color: #0f172a;
+}
+
+.drawing-stage-status {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+	padding: 14px 16px;
+	border-radius: 10px;
+}
+
+.drawing-stage-status-block {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.drawing-stage-status-block + .drawing-stage-status-block {
+	padding-left: 14px;
+	border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawing-stage-status-label {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(180, 180, 180, 0.72);
+}
+
+.drawing-stage-status-block strong {
+	font-size: 15px;
+	line-height: 1.35;
+	color: #e0e0e0;
+}
+
+.drawing-stage-status-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.drawing-stage-status-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 5px 9px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(0, 0, 0, 0.18);
+	color: rgba(210, 210, 210, 0.9);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+}
+
+.drawing-stage-status-pill.subtle {
+	color: rgba(203, 213, 225, 0.8);
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.drawing-stage-status-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 2px;
+}
+
+.drawing-stage-status-actions .drawing-action-btn {
+	justify-content: center;
+}
+
+.drawing-sheet-stage {
+  min-height: calc(100vh - 170px);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	padding: 0;
+	border-radius: 0;
+	background: #B0B0B0;
+	border: none;
+	box-shadow: none;
+	cursor: grab;
+}
+
+.drawing-sheet-stage.is-panning {
+	cursor: grabbing;
+}
+
+.drawing-sheet-stage.is-panning .drawing-viewport,
+.drawing-sheet-stage.is-panning .drawing-viewport-pan-handle,
+.drawing-sheet-stage.is-panning .drawing-viewport-resize-handle,
+.drawing-sheet-stage.is-panning .drawing-annotation,
+.drawing-sheet-stage.is-panning .drawing-titleblock {
+	cursor: grabbing !important;
+}
+
+/* Drafting grid overlay — toggleable via Grid tool */
+.drawing-sheet-stage.show-grid {
+	background-image:
+		linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+	background-size: 24px 24px;
+	background-position: center center;
+}
+
+.drawing-sheet-transform-layer {
+  transform-origin: 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.drawing-sheet {
+  position: relative;
+  width: 1080px;
+  flex-shrink: 0;
+
+	/* ── Sheet geometry tokens are now injected as inline --geo-* vars from SheetGeometry.ts ── */
+
+	background: #ffffff;
+  color: #111827;
+	border-radius: 0;
+	border: none;
+	box-shadow:
+		0 1px 4px rgba(0, 0, 0, 0.10),
+		0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: visible;
+}
+
+/* ── Outer drafting border — heavier structural line ── */
+/* z-index 4 keeps it ABOVE the title block (3) and banner (2) so the
+   border rectangle is always fully connected at every corner regardless
+   of sheet size.  Layout guides (4) and marquee (5) still layer correctly. */
+.drawing-sheet::before {
+	content: '';
+	position: absolute;
+	inset: var(--geo-outer-inset);
+	border: 2px solid rgba(0, 0, 0, 0.72);
+	pointer-events: none;
+	z-index: 4;
+}
+
+/* ── Content wrapper — viewport/annotation composition container ── */
+/* This is the global rebase: all placed content positions are now percentages
+   of this container instead of the full page, shifting the composition into
+   the contentAreaIn frame defined by the asymmetric margins. */
+.drawing-sheet-content {
+	position: absolute;
+	left: var(--geo-content-left);
+	top: var(--geo-content-top);
+	width: var(--geo-content-width);
+	height: var(--geo-content-height);
+	overflow: visible;
+	z-index: 0;
+}
+
+/* ── Content area boundary — subtle divider between drawing area and footer ── */
+/* Fixed to sheet geometry: never moves relative to sheet content on zoom/pan. */
+.drawing-sheet-content::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 0;
+	border-bottom: 0.5px solid rgba(180, 190, 200, 0.38);
+	pointer-events: none;
+	z-index: 10;
+}
+
+
+
+
+
+
+/* ── Top Header Band — structural region inside inner border ──
+   The header band is a strip at the top of innerBorderRect.
+   "NOT FOR CONSTRUCTION" is vertically centered and right-aligned.
+   NO extra border lines — only the outer/inner borders provide structural lines. */
+.drawing-sheet-banner {
+	position: absolute;
+	top: var(--geo-header-top);
+	left: var(--geo-header-left);
+	width: var(--geo-header-width);
+	height: var(--geo-header-height);
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	padding: 0 8px;
+	z-index: 2;
+	pointer-events: none;
+	font-size: 7px;
+	font-weight: 800;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	text-align: right;
+	color: rgba(30, 30, 30, 0.38);
+	white-space: nowrap;
+	background: #ffffff;
+}
+
+.drawing-layout-guide-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.drawing-sheet-marquee {
+  position: absolute;
+  z-index: 5;
+  border: 1px solid rgba(91, 155, 213, 0.8);
+  background: rgba(91, 155, 213, 0.12);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.drawing-layout-guide {
+  fill: none;
+  stroke-width: 0.06;
+  stroke-dasharray: 0.38 0.18;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.9;
+}
+
+.drawing-layout-guide.margin {
+  stroke: rgba(14, 116, 144, 0.92);
+}
+
+.drawing-layout-guide.centerline {
+  stroke: rgba(91, 155, 213, 0.8);
+}
+
+.drawing-layout-guide.peer {
+  stroke: rgba(124, 58, 237, 0.88);
+}
+
+.drawing-viewport,
+.drawing-annotation,
+.drawing-titleblock {
+  position: absolute;
+}
+
+/* ── Viewport wrapper: positions on the sheet, contains frame + caption ── */
+
+.drawing-viewport-wrapper {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+/* ── Viewport frame: contains ONLY the view graphics ── */
+
+.drawing-viewport {
+  position: relative;
+  flex: 1 1 0%;
+	min-height: 0;
+  border: 0.5px solid rgba(0, 0, 0, 0.30);
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.drawing-viewport.selected {
+  z-index: 2;
+  border-color: rgba(91, 155, 213, 0.6);
+  box-shadow: 0 0 0 1px rgba(91, 155, 213, 0.3);
+}
+
+.drawing-viewport.locked {
+  border-color: rgba(71, 85, 105, 0.48);
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.96));
+}
+
+.drawing-viewport.reframe-active {
+  z-index: 3;
+  border-color: rgba(37, 99, 235, 0.72);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22);
+}
+
+.drawing-viewport.dragging {
+  z-index: 2;
+  cursor: grabbing;
+  box-shadow:
+    0 0 0 1px rgba(91, 155, 213, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.drawing-viewport.resizing,
+.drawing-viewport.panning {
+  z-index: 3;
+  box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.4);
+}
+
+.drawing-viewport-action-capsule {
+	position: absolute;
+	top: 4px;
+	left: 50%;
+	z-index: 5;
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: max-content;
+	max-width: min(304px, calc(100vw - 32px));
+	padding: 4px 5px;
+	border: 1px solid rgba(148, 163, 184, 0.8);
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+	transform: translateX(-50%);
+	backdrop-filter: blur(8px);
+}
+
+.drawing-viewport-action-btn {
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: transparent;
+	color: #334155;
+	min-height: 22px;
+	padding: 3px 7px;
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.drawing-viewport-action-btn.active {
+		background: rgba(226, 232, 240, 0.92);
+		border-color: rgba(148, 163, 184, 0.7);
+		color: #0f172a;
+}
+
+.drawing-viewport-action-btn:hover {
+	background: rgba(241, 245, 249, 0.92);
+	border-color: rgba(148, 163, 184, 0.6);
+	color: #0f172a;
+}
+
+.drawing-viewport-action-btn.primary {
+	background: #0f172a;
+	color: #ffffff;
+}
+
+.drawing-viewport-action-btn.primary:hover {
+	background: #1e293b;
+	border-color: transparent;
+	color: #ffffff;
+}
+
+.drawing-viewport-action-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+		background: transparent;
+		border-color: transparent;
+		color: #64748b;
+}
+
+.drawing-viewport-action-select-shell {
+		display: inline-flex;
+		align-items: center;
+		min-height: 22px;
+		padding: 0 7px;
+		border: 1px solid rgba(148, 163, 184, 0.8);
+		border-radius: 999px;
+		background: rgba(248, 250, 252, 0.95);
+		color: #334155;
+}
+
+.drawing-viewport-action-select {
+		appearance: none;
+		border: none;
+		outline: none;
+		background-color: transparent;
+		background-image:
+			linear-gradient(45deg, transparent 50%, #475569 50%),
+			linear-gradient(135deg, #475569 50%, transparent 50%);
+		background-position:
+			calc(100% - 9px) calc(50% - 1px),
+			calc(100% - 5px) calc(50% - 1px);
+		background-repeat: no-repeat;
+		background-size: 5px 5px, 5px 5px;
+		color: inherit;
+		cursor: pointer;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		min-width: 88px;
+		padding: 0 14px 0 0;
+		text-transform: uppercase;
+}
+
+.drawing-viewport-action-select-shell:focus-within {
+		border-color: rgba(59, 130, 246, 0.75);
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.drawing-viewport-action-segment {
+	display: inline-flex;
+	align-items: center;
+	min-height: 22px;
+	border: 1px solid rgba(148, 163, 184, 0.8);
+	border-radius: 999px;
+	background: rgba(248, 250, 252, 0.95);
+	overflow: hidden;
+}
+
+.drawing-viewport-action-segment-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	border: none;
+	border-right: 1px solid rgba(148, 163, 184, 0.55);
+	background: transparent;
+	color: #334155;
+	font-size: 7px;
+	font-weight: 800;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background 140ms ease, color 140ms ease;
+}
+
+.drawing-viewport-action-segment-btn:last-child {
+	border-right: none;
+}
+
+.drawing-viewport-action-segment-btn:hover,
+.drawing-viewport-action-segment-btn:focus-visible {
+	background: rgba(226, 232, 240, 0.92);
+	color: #0f172a;
+	outline: none;
+}
+
+.drawing-viewport-action-segment-btn:disabled {
+	color: #94a3b8;
+	cursor: not-allowed;
+	background: transparent;
+}
+
+.drawing-viewport-action-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 6px;
+	min-height: 20px;
+	border-radius: 999px;
+	background: rgba(226, 232, 240, 0.85);
+	color: #334155;
+	font-size: 7px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	white-space: nowrap;
+}
+
+/* ── External caption row below viewport ── */
+
+.drawing-viewport-caption-row {
+  display: flex;
+	align-items: center;
+  gap: 6px;
+	min-height: 20px;
+	padding: 6px 4px 2px;
+  font-size: 8px;
+	line-height: 1.15;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.15);
+  margin-top: 0;
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.drawing-viewport-caption-row.dragging {
+	cursor: grabbing;
+}
+
+.drawing-viewport-caption-row.locked {
+		cursor: default;
+		color: #475569;
+}
+
+.drawing-viewport.reframe-active + .drawing-viewport-caption-row {
+		border-top-color: rgba(59, 130, 246, 0.48);
+}
+
+.drawing-viewport.locked + .drawing-viewport-caption-row {
+		border-top-color: rgba(71, 85, 105, 0.28);
+}
+
+.drawing-viewport-caption-title {
+  font-weight: 800;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0f172a;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawing-viewport-caption-title-btn {
+	appearance: none;
+	border: none;
+	background: transparent;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	text-transform: inherit;
+	letter-spacing: inherit;
+	text-align: left;
+	cursor: text;
+}
+
+.drawing-viewport-caption-title-btn:hover {
+	color: #1e293b;
+}
+
+.drawing-viewport-caption-title-btn:focus-visible {
+	outline: none;
+	text-decoration: underline;
+}
+
+.drawing-viewport.reframe-active + .drawing-viewport-caption-row .drawing-viewport-caption-title {
+		color: #1d4ed8;
+}
+
+.drawing-viewport-caption-scale {
+  color: #475569;
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
+}
+
+.drawing-viewport-caption-state {
+		display: inline-flex;
+		align-items: center;
+		color: #475569;
+		font-size: 7px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+}
+
+.drawing-viewport-caption-ref {
+  color: #64748b;
+  font-size: 7.5px;
+  margin-left: auto;
+}
+
+.drawing-annotation {
+  font-size: 12px;
+}
+
+.drawing-viewport-graphic {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.drawing-viewport-source-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.drawing-viewport-source-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.drawing-viewport-source-dimension-line,
+.drawing-viewport-source-dimension-cap {
+  vector-effect: non-scaling-stroke;
+}
+
+.drawing-viewport-source-dimension-line {
+  stroke: rgba(30, 41, 59, 0.88);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+}
+
+.drawing-viewport-source-dimension-cap {
+  fill: #1e293b;
+}
+
+.drawing-viewport-source-dimension-label {
+  fill: #0f172a;
+  font-size: 4px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.drawing-viewport-source-note {
+  position: absolute;
+  min-width: 0;
+  padding: 6px 7px;
+	border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translate(-4%, -8%);
+}
+
+.drawing-viewport-source-note-badge {
+  margin-bottom: 3px;
+  color: #475569;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.drawing-viewport-source-note-text {
+  color: #0f172a;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.drawing-source-view-canvas {
+  position: relative;
+  margin-top: 14px;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.15);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.drawing-source-view-canvas::before,
+.drawing-source-view-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.drawing-source-view-canvas::before {
+  inset: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawing-source-view-canvas::after {
+  inset: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+}
+
+.drawing-source-view-graphic,
+.drawing-source-view-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.drawing-source-view-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  text-align: center;
+  color: rgba(226, 235, 255, 0.8);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.drawing-source-view-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.drawing-source-view-svg {
+  overflow: visible;
+}
+
+.drawing-source-view-dimension-line,
+.drawing-source-view-dimension-hit,
+.drawing-source-view-dimension-handle {
+  vector-effect: non-scaling-stroke;
+}
+
+.drawing-source-view-dimension-line {
+  fill: none;
+  stroke: rgba(160, 160, 160, 0.7);
+  stroke-width: 0.42;
+  stroke-linecap: round;
+}
+
+.drawing-source-view-dimension-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 4.5;
+  cursor: grab;
+}
+
+.drawing-source-view-dimension-handle {
+  fill: #f0f0f0;
+  stroke: rgba(91, 155, 213, 0.8);
+  stroke-width: 0.5;
+  cursor: crosshair;
+}
+
+.drawing-source-view-dimension-label {
+  fill: #eff6ff;
+  font-size: 3.9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-anchor: middle;
+  cursor: grab;
+  paint-order: stroke;
+  stroke: rgba(30, 30, 30, 0.72);
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+}
+
+.drawing-source-view-dimension.selected .drawing-source-view-dimension-line,
+.drawing-source-view-dimension.dragging .drawing-source-view-dimension-line {
+  stroke: #7baed4;
+}
+
+.drawing-source-view-dimension.selected .drawing-source-view-dimension-handle,
+.drawing-source-view-dimension.dragging .drawing-source-view-dimension-handle {
+  fill: #e0eaf4;
+  stroke: #5b9bd5;
+}
+
+.drawing-source-view-note {
+  position: absolute;
+  z-index: 3;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(250, 250, 250, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+  transform: translate(-4%, -12%);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.drawing-source-view-note.selected {
+  border-color: rgba(91, 155, 213, 0.5);
+  box-shadow: 0 0 0 1px rgba(91, 155, 213, 0.25);
+}
+
+.drawing-source-view-note.dragging {
+  transform: translate(-4%, -12%) scale(1.015);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.drawing-source-view-note-badge {
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.drawing-source-view-note-text {
+  color: #0f172a;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.drawing-source-view-hint {
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.drawing-source-view-canvas.style-presentation {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.drawing-source-view-canvas.style-presentation .drawing-source-view-dimension-line {
+  stroke: rgba(160, 160, 160, 0.7);
+}
+
+.drawing-source-view-canvas.style-presentation .drawing-source-view-note {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.drawing-source-view-canvas.style-erector {
+  background: rgba(20, 40, 70, 0.18);
+}
+
+.drawing-source-view-canvas.style-erector .drawing-source-view-dimension-line {
+  stroke: rgba(140, 180, 220, 0.8);
+}
+
+.drawing-source-view-canvas.style-erector .drawing-source-view-dimension-handle {
+  fill: #f0f0f0;
+  stroke: #5b9bd5;
+}
+
+.drawing-source-view-canvas.style-erector .drawing-source-view-note {
+  border-color: rgba(91, 155, 213, 0.35);
+  background: rgba(245, 248, 252, 0.96);
+}
+
+.drawing-viewport-graphic-path {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.drawing-viewport-graphic-pattern-line {
+  fill: none;
+  stroke: rgba(30, 30, 30, 0.18);
+  stroke-width: 1;
+}
+
+.drawing-viewport-graphic-path.primary {
+  stroke: #1a1a1a;
+  stroke-width: 1.25;
+}
+
+.drawing-viewport-graphic-path.secondary {
+  stroke: #64748b;
+  stroke-width: 0.9;
+}
+
+.drawing-viewport-graphic-path.cut {
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+
+.drawing-viewport-graphic-path.poche {
+  stroke: rgba(30, 30, 30, 0.18);
+  stroke-width: 0.45;
+}
+
+.drawing-viewport-graphic-path.filled {
+  fill: rgba(30, 30, 30, 0.1);
+}
+
+.drawing-viewport-graphic-path.poche.filled {
+  fill: rgba(30, 30, 30, 0.1);
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-path.primary {
+  stroke: #334155;
+  stroke-width: 1.05;
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-path.secondary {
+  stroke: #8a8e93;
+  stroke-width: 0.8;
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-path.cut {
+  stroke: #0f172a;
+  stroke-width: 1.55;
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-path.filled {
+  fill: rgba(80, 80, 80, 0.06);
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-path.poche {
+  stroke: rgba(51, 65, 85, 0.12);
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-graphic-pattern-line {
+  stroke: rgba(51, 65, 85, 0.16);
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-source-dimension-line {
+  stroke: rgba(51, 65, 85, 0.76);
+}
+
+.drawing-viewport.style-presentation .drawing-viewport-source-note {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.drawing-viewport.style-erector .drawing-viewport-graphic-path.primary,
+.drawing-viewport.style-erector .drawing-viewport-graphic-path.cut {
+  stroke: #3d6d9e;
+}
+
+.drawing-viewport.style-erector .drawing-viewport-graphic-path.secondary {
+  stroke: #7baed4;
+}
+
+.drawing-viewport.style-erector .drawing-viewport-graphic-path.poche {
+  stroke: rgba(61, 109, 158, 0.16);
+}
+
+.drawing-viewport.style-erector .drawing-viewport-graphic-pattern-line {
+  stroke: rgba(61, 109, 158, 0.18);
+}
+
+.drawing-viewport.style-erector .drawing-viewport-source-dimension-line,
+.drawing-viewport.style-erector .drawing-viewport-source-dimension-cap {
+  stroke: rgba(61, 109, 158, 0.9);
+  fill: #3d6d9e;
+}
+
+.drawing-viewport.style-erector .drawing-viewport-source-dimension-label {
+  fill: #3d6d9e;
+}
+
+.drawing-viewport.style-erector .drawing-viewport-source-note {
+  border-color: rgba(91, 155, 213, 0.35);
+  background: rgba(245, 248, 252, 0.92);
+}
+
+.drawing-viewport-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.drawing-viewport-pan-handle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(91, 155, 213, 0.3);
+  background: rgba(245, 248, 252, 0.95);
+  color: #3d6d9e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drawing-viewport-pan-handle.active {
+  background: #e8eff6;
+  border-color: rgba(91, 155, 213, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: grabbing;
+}
+
+.drawing-viewport-resize-handle {
+  position: absolute;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  touch-action: none;
+}
+
+.drawing-viewport-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  border: 2px solid #5b9bd5;
+  background: #f0f4f8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.drawing-viewport-resize-handle.nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.drawing-viewport-resize-handle.ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.drawing-viewport-resize-handle.sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.drawing-viewport-resize-handle.se {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.drawing-viewport.resizing .drawing-viewport-resize-handle::before,
+.drawing-viewport.selected .drawing-viewport-resize-handle:hover::before,
+.drawing-viewport.selected .drawing-viewport-resize-handle:focus-visible::before {
+  background: #e0eaf4;
+  border-color: #3d6d9e;
+  box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.2);
+}
+
+.drawing-annotation-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.drawing-annotation-leader,
+.drawing-annotation-target {
+  vector-effect: non-scaling-stroke;
+}
+
+.drawing-annotation-leader {
+  fill: none;
+  stroke: #5b9bd5;
+  stroke-width: 0.05;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.92;
+}
+
+.drawing-annotation-leader.selected {
+  stroke: #5b9bd5;
+  stroke-width: 0.07;
+}
+
+.drawing-annotation-target {
+  fill: #eff6ff;
+  stroke: #5b9bd5;
+  stroke-width: 0.05;
+}
+
+.drawing-annotation-target.selected {
+  fill: #e0eaf4;
+  stroke: #5b9bd5;
+  stroke-width: 0.06;
+}
+
+.drawing-annotation {
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 8px 10px;
+  border-left: 3px solid #333;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.drawing-annotation.callout {
+  border-left-color: #5b9bd5;
+}
+
+.drawing-annotation.selected {
+  border-color: rgba(91, 155, 213, 0.4);
+  box-shadow: 0 0 0 1px rgba(91, 155, 213, 0.2);
+}
+
+.drawing-annotation.dragging {
+  cursor: grabbing;
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.drawing-annotation-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.drawing-annotation-text {
+  color: #0f172a;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.drawing-callout-handle {
+  position: absolute;
+  z-index: 4;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 999px;
+  border: 2px solid #5b9bd5;
+  background: #f0f4f8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.drawing-callout-handle.selected {
+  background: #e0eaf4;
+  border-color: #3d6d9e;
+  box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.2);
+}
+
+.drawing-form-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.drawing-field {
+  display: grid;
+  gap: 6px;
+}
+
+.drawing-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.76);
+}
+
+.drawing-input-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.drawing-input,
+.drawing-textarea,
+.drawing-select {
+  width: 100%;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.15);
+  color: #d4d4d4;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.drawing-input:focus,
+.drawing-textarea:focus,
+.drawing-select:focus {
+  outline: none;
+  border-color: rgba(91, 155, 213, 0.5);
+  box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.15);
+}
+
+.drawing-textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.drawing-textarea-compact {
+	min-height: 74px;
+}
+
+.drawing-panel-subtle {
+  color: rgba(200, 200, 200, 0.72);
+}
+
+.drawing-empty-state {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 3px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(200, 200, 200, 0.76);
+  line-height: 1.5;
+}
+
+.drawing-guidance-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.drawing-guidance-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.drawing-guidance-item span {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.62);
+}
+
+.drawing-guidance-item strong {
+  color: #e0e0e0;
+  line-height: 1.45;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.drawing-titleblock {
+	position: absolute;
+	top: var(--geo-titleblock-top);
+	left: var(--geo-titleblock-left);
+	width: var(--geo-titleblock-width);
+	height: var(--geo-titleblock-height);
+	box-sizing: border-box;
+	display: grid;
+	grid-template-rows:
+		minmax(0, 1.10fr)
+		minmax(0, 3.10fr)
+		minmax(0, 1.05fr)
+		minmax(0, 1.00fr);
+	gap: 0;
+	padding: 0;
+	border-left: 1.8px solid rgba(0, 0, 0, 0.58);
+	border-top: none;
+	border-right: none;
+	border-bottom: none;
+	border-radius: 0;
+	background: #ffffff;
+	pointer-events: auto;
+	z-index: 3;
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.drawing-titleblock-panel {
+	display: grid;
+	min-height: 0;
+	border: 0;
+	border-radius: 0;
+	background: #ffffff;
+	overflow: visible;
+}
+
+.drawing-titleblock-panel + .drawing-titleblock-panel {
+	border-top: 1.2px solid rgba(0, 0, 0, 0.38);
+}
+
+.drawing-titleblock-panel-number {
+	grid-template-columns: 14px minmax(0, 1fr);
+}
+
+.drawing-titleblock-number-label,
+.drawing-titleblock-number-value,
+.drawing-titleblock-microcopy,
+.drawing-titleblock-meta-value,
+.drawing-titleblock-panel-title-button,
+.drawing-titleblock-vertical-button {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	text-align: center;
+}
+
+.drawing-titleblock-editable {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	cursor: text;
+	transition: background-color 140ms ease, box-shadow 140ms ease, color 140ms ease;
+}
+
+.drawing-titleblock-editable:hover {
+	background: rgba(91, 155, 213, 0.07);
+}
+
+.drawing-titleblock-editable:focus-visible {
+	outline: none;
+	background: rgba(91, 155, 213, 0.1);
+	box-shadow: inset 0 0 0 1px rgba(91, 155, 213, 0.4);
+}
+
+.drawing-titleblock-number-label {
+	padding: 2px 0;
+	border-right: 0.7px solid rgba(0, 0, 0, 0.20);
+	font-size: 4.5px;
+	font-weight: 800;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: #475569;
+	background: rgba(240, 240, 237, 0.96);
+}
+
+.drawing-titleblock-number-value {
+	padding: 4px 0 3px;
+	font-size: clamp(22px, 2.6vw, 30px);
+	font-weight: 900;
+	letter-spacing: 0.04em;
+	line-height: 1;
+	overflow: visible;
+	background: #ffffff;
+}
+
+.drawing-titleblock-panel-meta {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.drawing-titleblock-meta-cell {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) minmax(0, 0.82fr);
+	align-content: stretch;
+	justify-items: stretch;
+	gap: 0;
+	padding: 0;
+	background: #ffffff;
+}
+
+.drawing-titleblock-meta-cell + .drawing-titleblock-meta-cell {
+	border-left: 0.5px solid rgba(0, 0, 0, 0.18);
+}
+
+.drawing-titleblock-microcopy {
+	padding: 2px 0 1px;
+	border-bottom: 0.4px solid rgba(0, 0, 0, 0.12);
+	font-size: 4.5px;
+	font-weight: 800;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: #64748b;
+	background: rgba(244, 244, 241, 0.96);
+}
+
+.drawing-titleblock-meta-value {
+	padding: 3px 0;
+	font-size: 6px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #0f172a;
+}
+
+.drawing-titleblock-panel-title {
+	place-items: center;
+	padding: 0;
+	background: #ffffff;
+	overflow: visible;
+}
+
+/* ── System Title — the dominant sheet name ── */
+.drawing-titleblock-system-title {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	text-align: center;
+	padding: 8px 0;
+	font-size: clamp(12px, 1.6vw, 16px);
+	font-weight: 900;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	line-height: 1.1;
+	color: #0f172a;
+	white-space: nowrap;
+	overflow: visible;
+}
+
+/* ── Legacy panel-title-button (kept for compat) ── */
+.drawing-titleblock-panel-title-button {
+	padding: 6px 0;
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	line-height: 1.15;
+	color: #0f172a;
+}
+
+.drawing-titleblock-panel-split {
+	grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+	gap: 0;
+	padding: 0;
+	background: #ffffff;
+}
+
+.drawing-titleblock-vertical-cell {
+	display: grid;
+	place-items: center;
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: #ffffff;
+	overflow: visible;
+}
+
+.drawing-titleblock-vertical-cell + .drawing-titleblock-vertical-cell {
+	border-left: 0.5px solid rgba(0, 0, 0, 0.18);
+}
+
+.drawing-titleblock-vertical-button {
+	padding: 4px 0;
+	white-space: nowrap;
+	text-transform: uppercase;
+	font-size: 8px;
+	font-weight: 900;
+	letter-spacing: 0.12em;
+	color: #0f172a;
+	overflow: visible;
+}
+
+.drawing-titleblock-vertical-button.subtle {
+	font-size: 5.5px;
+	font-weight: 800;
+	letter-spacing: 0.18em;
+	color: #334155;
+}
+
+/* ── Footer / Notes Band ─────────────────────────────────────────────────── */
+
+/* ── Footer panel gutter token — one value for ALL bottom-band spacing ──
+   Used for:
+     • padding-left  → gap between inner border and first panel
+     • gap           → equal gutters between panels
+     • padding-right → gap between last panel and title block strip
+   Result: [border] → gutter → [panel] → gutter → [panel] → gutter → [panel] → gutter → [title block] */
+.drawing-sheet-footer {
+	--footer-panel-gutter: 3px;
+
+	position: absolute;
+	top: var(--geo-footer-top);
+	left: var(--geo-footer-left);
+	width: var(--geo-footer-width);
+	height: var(--geo-footer-height);
+	display: grid;
+	grid-template-columns: minmax(0, 2.55fr) minmax(0, 3.15fr) minmax(0, 1.35fr) minmax(0, 1.55fr);
+	gap: var(--footer-panel-gutter);
+	padding-left: var(--footer-panel-gutter);
+	padding-right: var(--footer-panel-gutter);
+	pointer-events: none;
+	z-index: 2;
+	text-transform: uppercase;
+}
+
+.drawing-sheet-footer-box {
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 6px 7px 4px;
+	border: 0.5px solid rgba(0, 0, 0, 0.25);
+	border-radius: 0;
+	background: #ffffff;
+	box-shadow: none;
+	overflow: hidden;
+}
+
+
+
+.drawing-sheet-footer-heading {
+	font-size: 8.5px;  /* ≈ 2.2 mm plotted on 11×8.5 sheet (1080 px = 279.4 mm) */
+	font-weight: 900;
+	letter-spacing: 0.22em;
+	/* text-transform inherited from .drawing-sheet-footer */
+	color: #334155;
+	margin: 0 0 3px 0;
+	padding-bottom: 2.5px;
+	border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+	line-height: 1.15;
+}
+
+.drawing-sheet-footer-body {
+	font-size: 6.2px;  /* ≈ 1.6 mm plotted on 11×8.5 sheet */
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	color: #1e293b;
+	line-height: 1.15;
+	margin: 0;
+	padding: 0;
+}
+
+.drawing-sheet-footer-body li {
+	margin-bottom: 1px;
+	padding-left: 1px;
+}
+
+.drawing-sheet-footer-body p {
+	margin: 0 0 3px 0;
+	padding: 0;
+}
+
+
+.drawing-sheet-footer-body ol {
+	margin: 0;
+	padding-left: 8px;
+	list-style: decimal;
+}
+
+.drawing-sheet-footer-body ul {
+	margin: 0;
+	padding-left: 6px;
+	list-style: none;
+}
+
+/* ── Project info grid inside right footer panel ── */
+.drawing-sheet-footer-info-grid {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 1px 5px;
+	font-size: 6.2px;  /* ≈ 1.6 mm plotted */
+	line-height: 1.15;
+}
+
+.drawing-sheet-footer-info-label {
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	/* text-transform inherited from .drawing-sheet-footer */
+	color: #64748b;
+	white-space: nowrap;
+}
+
+.drawing-sheet-footer-info-value {
+	font-weight: 600;
+	color: #1e293b;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ── Two-column internal layout for right panel (info + drawing index) ── */
+.drawing-sheet-footer-right-columns {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0;
+	height: 100%;
+}
+
+.drawing-sheet-footer-right-col {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.drawing-sheet-footer-right-col + .drawing-sheet-footer-right-col {
+	padding-left: 6px;
+	border-left: 0.5px solid rgba(0, 0, 0, 0.10);
+}
+
+/* ── Drawing index list ── */
+.drawing-sheet-footer-index-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 6.2px;  /* ≈ 1.6 mm plotted */
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	color: #1e293b;
+	line-height: 1.15;
+}
+
+.drawing-sheet-footer-index-item {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 1px;
+}
+
+.drawing-sheet-footer-index-number {
+	font-weight: 800;
+	color: #334155;
+	flex-shrink: 0;
+	min-width: 18px;
+}
+
+.drawing-sheet-footer-index-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drawing-sheet-footer-smart-text {
+	min-width: 0;
+	font-size: 11.6px;  /* ≈ 3.0 mm plotted — major title / sheet number */
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	color: #0f172a;
+	line-height: 1.15;
+	white-space: pre-wrap;
+	overflow: hidden;
+}
+
+.drawing-sheet-footer-smart-text.is-empty {
+	color: #8a8e93;
+	font-style: italic;
+}
+
+.drawing-titleblock-editor-overlay {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 6;
+}
+
+.drawing-titleblock-editor-shell {
+	position: absolute;
+	top: 50%;
+	right: calc(2.6% + var(--geo-titleblock-width) + 54px);
+	transform: translateY(-50%);
+	transform-origin: center;
+	pointer-events: auto;
+}
+
+.drawing-titleblock-editor-card {
+	width: min(320px, 42vw);
+	padding: 0;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 4px;
+	background: #2e3236;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	transform: rotate(-90deg);
+	transform-origin: center;
+}
+
+.drawing-titleblock-editor-card-content {
+	display: grid;
+	gap: 12px;
+	min-width: 280px;
+	padding: 16px 18px;
+	transform: rotate(90deg);
+	transform-origin: center;
+}
+
+.drawing-titleblock-editor-card .drawing-panel-label,
+.drawing-titleblock-editor-card .drawing-field > span,
+.drawing-titleblock-editor-card .drawing-panel-subtle {
+	color: rgba(200, 200, 200, 0.82);
+}
+
+.drawing-titleblock-editor-card .drawing-panel-subtle {
+	margin: 0;
+}
+
+.drawing-titleblock-editor-input {
+	background: rgba(255, 255, 255, 0.98);
+	color: #0f172a;
+	border-color: rgba(0, 0, 0, 0.2);
+}
+
+.drawing-reference-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.drawing-reference-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  padding: 12px;
+	border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drawing-reference-item.active {
+  background: rgba(91, 155, 213, 0.12);
+  border-color: rgba(91, 155, 213, 0.3);
+}
+
+.drawing-reference-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(91, 155, 213, 0.25);
+  background: rgba(91, 155, 213, 0.12);
+  color: #c8dce8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.drawing-reference-content {
+  min-width: 0;
+}
+
+.drawing-reference-content strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.drawing-metrics,
+.drawing-checklist {
+  list-style: none;
+  padding: 0;
+}
+
+.drawing-metrics li,
+.drawing-checklist li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.drawing-checklist li {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1320px) {
+  .drawing-body {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+	.drawing-stage-status {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.drawing-stage-status-block:last-child {
+		grid-column: 1 / -1;
+		padding-left: 0;
+		border-left: 0;
+		padding-top: 12px;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+	}
+}
+
+@media (max-width: 980px) {
+  .drawing-topbar,
+  .drawing-body {
+    grid-template-columns: 1fr;
+  }
+
+	.drawing-topbar-menubar {
+	  width: 100%;
+	}
+
+	.drawing-menu-container,
+	.drawing-menu-trigger {
+	  width: 100%;
+	}
+
+	.drawing-menu-panel {
+	  min-width: 0;
+	}
+
+  .drawing-topbar-actions {
+    justify-content: flex-start;
+  }
+
+	.drawing-stage-status {
+		grid-template-columns: 1fr;
+	}
+
+	.drawing-stage-status-block + .drawing-stage-status-block {
+		padding-left: 0;
+		border-left: 0;
+		padding-top: 12px;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+		.drawing-palette-tabs {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		.drawing-palette-row {
+			grid-template-columns: 1fr;
+		}
+
+		.drawing-palette-row-actions {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.drawing-palette-row-actions .drawing-action-btn {
+			width: 100%;
+			min-width: 0;
+		}
+
+		/* Geometry tokens are now computed in JS — no media-query overrides needed */
+
+  .drawing-panel-actions.split,
+	.drawing-layout-action-grid,
+  .drawing-input-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ── Sheet stage hidden when editing source view ── */
+
+.drawing-sheet-stage.hidden {
+  display: none;
+}
+
+/* ── Sheet Navigator ── */
+
+/* ─── Inline Sheet Navigator (toolbar) ─── */
+.cad-sheet-navigator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: 4px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  user-select: none;
+}
+
+.cad-sheet-nav-btn {
+  background: none;
+  border: none;
+  color: #8a8e93;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cad-sheet-nav-btn:hover:not(:disabled) {
+  color: #d4d4d4;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cad-sheet-nav-btn:disabled {
+  color: rgba(138, 142, 147, 0.3);
+  cursor: default;
+}
+
+.cad-sheet-nav-index {
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Consolas', 'SF Mono', monospace;
+  color: #d4d4d4;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ── Source View Editor ── */
+
+.drawing-source-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  background: #B0B0B0;
+}
+
+.drawing-source-editor-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
+  font-size: 12px;
+  color: #334155;
+}
+
+.drawing-source-editor-back {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.drawing-source-editor-back:hover {
+  background: rgba(37, 99, 235, 0.08);
+  text-decoration: underline;
+}
+
+.drawing-source-editor-separator {
+  color: #94a3b8;
+}
+
+.drawing-source-editor-view-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.drawing-source-editor-scale {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.drawing-source-editor-canvas-area {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.drawing-source-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #e2e8f0;
+  border-top: 1px solid #cbd5e1;
+}
+
+.drawing-source-editor-tool {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.drawing-source-editor-tool:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.drawing-source-editor-spacer {
+  flex: 1;
+}
+
+.drawing-source-editor-done {
+  background: #2563eb;
+  border: 1px solid #1d4ed8;
+  border-radius: 2px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.drawing-source-editor-done:hover {
+  background: #1d4ed8;
+}
+
+@media print {
+  body.workspace-drawing {
+    background: #ffffff !important;
+  }
+
+  .drawing-shell-chrome,
+  .drawing-topbar,
+  .drawing-rail,
+  .cad-tool-palette {
+    display: none !important;
+  }
+
+  .drawing-body,
+  .drawing-canvas-area,
+  .drawing-sheet-stage {
+    display: block;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    min-height: auto;
+  }
+
+	.drawing-workspace-tabs,
+	.drawing-viewport-action-capsule {
+		display: none !important;
+	}
+
+  .drawing-sheet-transform-layer {
+    transform: none !important;
+    padding: 0;
+  }
+
+  .drawing-sheet {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .drawing-callout-handle {
+    display: none !important;
+  }
+
+  .drawing-layout-guide-overlay {
+    display: none !important;
+  }
+
+  .drawing-annotation.selected,
+  .drawing-annotation.dragging {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .drawing-titleblock {
+    box-shadow: none;
+    background: #ffffff;
+			border-radius: 0;
+  }
+
+		.drawing-sheet-footer {
+			box-shadow: none;
+			background: #ffffff;
+		}
+}

@@ -1,0 +1,101 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  /* Allow marketing/legal pages to scroll.
+     The 3D workspace uses fixed-position canvas and doesn't require global scroll-lock. */
+  overflow: auto;
+}
+
+/* Workspace (3D canvas) mode:
+   - prevent page scroll/refresh while manipulating the canvas (touch pan/zoom)
+   - keep internal panels scrollable (they have their own overflow)
+   - use modern dynamic viewport units when available (iOS address bar).
+*/
+body.workspace-3d {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.workspace-3d #root {
+  overflow: hidden;
+  height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  body.workspace-3d #root {
+    height: 100dvh;
+  }
+}
+
+/* R3F/WebGL: stop browser gestures from hijacking interaction (iOS Safari in particular). */
+body.workspace-3d canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.workspace-drawing {
+  background: #B0B0B0;
+  color: #e0e0e0;
+}
+
+body.workspace-drawing #root {
+  min-height: 100vh;
+}
+
+body.workspace-pm {
+  background: var(--pm-bg, #f3f1eb);
+  color: var(--pm-text, #18202a);
+}
+
+body.workspace-pm #root {
+  min-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  body.workspace-drawing #root {
+    min-height: 100dvh;
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+:root {
+  --pm-sidebar: #0d1622;
+  --pm-sidebar-2: #121d2c;
+  --pm-bg: #08111b;
+  --pm-panel: rgba(12, 19, 29, 0.86);
+  --pm-panel-2: rgba(15, 23, 35, 0.92);
+  --pm-border: rgba(148, 171, 205, 0.16);
+  --pm-text: #edf4ff;
+  --pm-text-muted: rgba(195, 209, 229, 0.72);
+  --pm-accent: #9eafbc;
+  --pm-accent-soft: rgba(158, 175, 188, 0.18);
+  --pm-metal: #d2a76a;
+  --pm-metal-soft: rgba(210, 167, 106, 0.18);
+  --pm-success: #8ed9aa;
+  --pm-warning: #e2b977;
+  --pm-danger: #ff9a9a;
+  --pm-radius: 14px;
+  --pm-shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
+}
