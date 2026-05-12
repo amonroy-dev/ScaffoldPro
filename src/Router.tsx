@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { AppContent } from './App'
 import { DrawingsWorkspace } from './components/drawings/DrawingsWorkspace'
-import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
+import PendingAccessPage from './pages/PendingAccessPage'
 import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import ProjectEditorLayout from './pages/ProjectEditorLayout'
-import { RequireBetaAccess } from './components/RequireBetaAccess'
+import { RequireInternalAccess } from './components/RequireInternalAccess'
 import { JobBomRoute, JobCanvasRoute, JobDrawingsRoute } from './pm/components/JobWorkspace'
 import JobContextOnlyLayout from './pm/components/JobContextOnlyLayout'
 import JobWorkspaceLayout from './pm/components/JobWorkspaceLayout'
@@ -56,8 +56,9 @@ export default function Router() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/pending-access" element={<PendingAccessPage />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
 
@@ -65,17 +66,17 @@ export default function Router() {
 				<Route
 					path="/projects"
 					element={
-						<RequireBetaAccess>
+						<RequireInternalAccess>
 							<Navigate to={homePath()} replace />
-						</RequireBetaAccess>
+						</RequireInternalAccess>
 					}
 				/>
 
 				<Route
 					element={
-						<RequireBetaAccess>
+						<RequireInternalAccess>
 							<PmShellLayout />
-						</RequireBetaAccess>
+						</RequireInternalAccess>
 					}
 				>
 					<Route path={homePath()} element={<PmHomePage />} />
@@ -108,9 +109,9 @@ export default function Router() {
 				<Route
 					path="/jobs/:jobId"
 					element={
-						<RequireBetaAccess>
+						<RequireInternalAccess>
 							<JobContextOnlyLayout />
-						</RequireBetaAccess>
+						</RequireInternalAccess>
 					}
 				>
 					<Route path="canvas" element={<JobCanvasRoute />} />
@@ -135,9 +136,9 @@ export default function Router() {
 				<Route
 					path="/app/:projectId"
 					element={
-						<RequireBetaAccess>
+						<RequireInternalAccess>
 							<ProjectEditorLayout />
-						</RequireBetaAccess>
+						</RequireInternalAccess>
 					}
 				>
 					<Route index element={<AppContent />} />

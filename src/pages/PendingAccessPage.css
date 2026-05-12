@@ -1,0 +1,124 @@
+.pending-access-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(120deg, rgba(37, 99, 235, 0.12), transparent 34%),
+    linear-gradient(245deg, rgba(15, 118, 110, 0.14), transparent 38%),
+    #eef3f6;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+.pending-access-card {
+  width: min(100%, 560px);
+  padding: 34px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.14);
+}
+
+.pending-access-mark {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+}
+
+.pending-access-eyebrow {
+  margin-top: 24px;
+  color: #5b6573;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pending-access-card h1 {
+  margin-top: 10px;
+  font-size: clamp(32px, 6vw, 52px);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.pending-access-copy {
+  margin-top: 16px;
+  color: #5b6573;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.pending-access-detail {
+  margin-top: 22px;
+  padding: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 8px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #31504d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pending-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.pending-access-actions button,
+.pending-access-actions a {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pending-access-actions button {
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  background: #fff;
+  color: #263244;
+}
+
+.pending-access-actions a {
+  border: 0;
+  background: linear-gradient(135deg, #111827, #2563eb 58%, #0f766e);
+  color: #fff;
+  box-shadow: 0 18px 42px rgba(37, 99, 235, 0.22);
+}
+
+.pending-access-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.pending-access-actions button:focus-visible,
+.pending-access-actions a:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.72);
+  outline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .pending-access-card {
+    padding: 24px;
+  }
+
+  .pending-access-actions button,
+  .pending-access-actions a {
+    width: 100%;
+  }
+}

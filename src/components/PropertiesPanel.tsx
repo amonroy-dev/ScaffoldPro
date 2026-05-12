@@ -7168,7 +7168,7 @@ export function PropertiesPanel() {
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="auto-scaffold-modal-title"
-					data-scaffxiq-modal="auto-scaffold"
+					data-scaffoldpro-modal="auto-scaffold"
 					data-testid="auto-scaffold-modal"
 					onPointerDownCapture={e => e.stopPropagation()}
 					onPointerUpCapture={e => e.stopPropagation()}

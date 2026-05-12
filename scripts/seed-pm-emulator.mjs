@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing'
 import { Timestamp, doc, writeBatch } from 'firebase/firestore'
 
-const PROJECT_ID = 'scaffxiq'
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'demo-scaffoldpro'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
-const COLLAB_EMAIL = process.env.PM_E2E_COLLAB_EMAIL || 'pm-collab@scaffxiq.test'
+const COLLAB_EMAIL = process.env.PM_E2E_COLLAB_EMAIL || 'pm-collab@scaffoldpro.test'
 const COLLAB_PASSWORD = process.env.PM_E2E_COLLAB_PASSWORD || 'Password123!'
 const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099'
 const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8082'
@@ -110,8 +110,8 @@ await testEnv.withSecurityRulesDisabled(async context => {
   const db = context.firestore()
   const batch = writeBatch(db)
 
-  batch.set(doc(db, 'betaAllowlist', owner.uid), { invitedBy: 'system', seededAt: now })
-  batch.set(doc(db, 'betaAllowlist', collaborator.uid), { invitedBy: 'system', seededAt: now })
+  batch.set(doc(db, 'accessAllowlist', owner.uid), { active: true, approvedBy: 'system', approvedAt: now })
+  batch.set(doc(db, 'accessAllowlist', collaborator.uid), { active: true, approvedBy: 'system', approvedAt: now })
 
   batch.set(doc(db, 'orgs', orgId), {
     name: 'PM Demo User Workspace',

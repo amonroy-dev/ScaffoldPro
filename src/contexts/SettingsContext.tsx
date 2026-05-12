@@ -85,7 +85,7 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | null>(null)
 
-const STORAGE_KEY = 'scaffxiq-settings'
+const STORAGE_KEY = 'scaffoldpro-settings'
 const SETTINGS_VERSION = 2 // Increment to invalidate old cached settings
 
 export function SettingsProvider({ children }: { children: ReactNode }) {

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
 
 async function login(page: Page) {
@@ -26,19 +26,19 @@ async function openCanvasWorkspace(page: Page) {
   await expect(page).toHaveURL(/\/jobs\/[^/]+\/canvas$/)
 
   await expect.poll(
-    async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.addRectBaseMass === 'function'),
+    async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.addRectBaseMass === 'function'),
   ).toBe(true)
   await expect.poll(
-    async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.getBuildingState === 'function'),
+    async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.getBuildingState === 'function'),
   ).toBe(true)
   await expect.poll(
-    async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.getBaseMassFaceDebug === 'function'),
+    async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.getBaseMassFaceDebug === 'function'),
   ).toBe(true)
   await expect.poll(
-    async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.selectBuildingEntity === 'function'),
+    async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.selectBuildingEntity === 'function'),
   ).toBe(true)
   await expect.poll(
-    async () => page.evaluate(() => typeof (window as any).__scaffxiqSceneDebug?.setNamedView === 'function'),
+    async () => page.evaluate(() => typeof (window as any).__scaffoldproSceneDebug?.setNamedView === 'function'),
   ).toBe(true)
 }
 
@@ -48,23 +48,23 @@ async function addRectBaseMassAndWait(page: Page, params: {
   heightFt: number
   center: { x: number; y: number; z: number }
 }) {
-  const buildingId = await page.evaluate((nextParams) => (window as any).__scaffxiqToolDebug?.addRectBaseMass?.(nextParams) ?? null, params)
+  const buildingId = await page.evaluate((nextParams) => (window as any).__scaffoldproToolDebug?.addRectBaseMass?.(nextParams) ?? null, params)
   expect(buildingId).toBeTruthy()
 
   await expect.poll(
     async () => {
-      return page.evaluate((entityId) => (window as any).__scaffxiqToolDebug?.getBaseMassFaceDebug?.(entityId, 'front') ?? null, buildingId)
+      return page.evaluate((entityId) => (window as any).__scaffoldproToolDebug?.getBaseMassFaceDebug?.(entityId, 'front') ?? null, buildingId)
     },
     { timeout: 15000 },
   ).not.toBeNull()
 
   await page.evaluate((entityId) => {
-    ;(window as any).__scaffxiqToolDebug?.selectBuildingEntity?.(entityId)
+    ;(window as any).__scaffoldproToolDebug?.selectBuildingEntity?.(entityId)
   }, buildingId)
 
   await expect.poll(
     async () => {
-      const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBuildingState?.() ?? null)
+      const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBuildingState?.() ?? null)
       return state?.selectedBuildingEntityId ?? null
     },
     { timeout: 15000 },
@@ -75,7 +75,7 @@ async function addRectBaseMassAndWait(page: Page, params: {
 }
 
 async function moveMouseToWorldPoint(page: Page, point: { x: number; y: number; z?: number }) {
-  const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
+  const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
     x: point.x,
     y: point.y,
     z: point.z ?? 0,
@@ -95,7 +95,7 @@ test('side-feature hosted hover resolves the correct wall for all four rect face
   const faceBasisHandedness = await page.evaluate((entityId) => {
     const faces = ['front', 'back', 'left', 'right'] as const
     return faces.map((faceId) => {
-      const face = (window as any).__scaffxiqToolDebug?.getBaseMassFaceDebug?.(entityId, faceId) ?? null
+      const face = (window as any).__scaffoldproToolDebug?.getBaseMassFaceDebug?.(entityId, faceId) ?? null
       if (!face) return { faceId, handedness: null }
       const cross = {
         x: face.axisU.y * face.axisV.z - face.axisU.z * face.axisV.y,
@@ -118,7 +118,7 @@ test('side-feature hosted hover resolves the correct wall for all four rect face
   await sideFeatureButton.click()
   await expect.poll(
     async () => {
-      const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBuildingState?.() ?? null)
+      const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBuildingState?.() ?? null)
       return {
         activeTool: state?.activeTool ?? null,
         hostKind: state?.buildingHostedSketchIntent?.hostKind ?? null,
@@ -139,13 +139,13 @@ test('side-feature hosted hover resolves the correct wall for all four rect face
 
   for (const check of faceChecks) {
     await page.evaluate((view) => {
-      ;(window as any).__scaffxiqSceneDebug?.setNamedView?.(view)
+      ;(window as any).__scaffoldproSceneDebug?.setNamedView?.(view)
     }, check.view)
     await page.waitForTimeout(800)
     await moveMouseToWorldPoint(page, check.point)
     await expect.poll(
       async () => {
-        const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBuildingState?.() ?? null)
+        const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBuildingState?.() ?? null)
         return state?.buildingHostedSketchFaceId ?? null
       },
       { timeout: 5000 },

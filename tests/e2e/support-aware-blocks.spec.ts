@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
 
 async function login(page: Page) {
@@ -26,13 +26,13 @@ async function openCanvasWorkspace(page: Page) {
 	await expect(page).toHaveURL(/\/jobs\/[^/]+\/canvas$/)
 
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.getBlockState === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.getBlockState === 'function'),
 	).toBe(true)
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.editBlock === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.editBlock === 'function'),
 	).toBe(true)
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.setBlockLiveLoad === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.setBlockLiveLoad === 'function'),
 	).toBe(true)
 }
 
@@ -50,7 +50,7 @@ async function enableBlockPlacement(page: Page) {
 }
 
 async function clickWorldPoint(page: Page, point: { x: number; y: number; z?: number }) {
-	const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
+	const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
 		x: point.x,
 		y: point.y,
 		z: point.z ?? 0,
@@ -66,12 +66,12 @@ async function addBuildingBoxAndWait(page: Page, params: {
 	heightFt: number
 	center: { x: number; y: number; z: number }
 }) {
-	const buildingId = await page.evaluate((nextParams) => (window as any).__scaffxiqToolDebug?.addBuildingBox?.(nextParams) ?? null, params)
+	const buildingId = await page.evaluate((nextParams) => (window as any).__scaffoldproToolDebug?.addBuildingBox?.(nextParams) ?? null, params)
 	expect(buildingId).toBeTruthy()
 
 	await expect.poll(
 		async () => {
-			const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+			const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 			return state?.selectedObjectId ?? null
 		},
 		{ timeout: 15000 },
@@ -96,23 +96,23 @@ test('editing a block into mixed roof and ground support shortens the roof-suppo
 	await clickWorldPoint(page, { x: 10, y: 0, z: 0 })
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		return state?.scaffoldBlocks?.length ?? 0
 	}, { timeout: 15000 }).toBe(1)
 
-	const initialState = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+	const initialState = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 	const blockId = initialState?.scaffoldBlocks?.[0]?.id
 	expect(blockId).toBeTruthy()
 
 	await page.evaluate((id) => {
-		;(window as any).__scaffxiqToolDebug?.editBlock?.(id, {
+		;(window as any).__scaffoldproToolDebug?.editBlock?.(id, {
 			heightFt: 30,
 			center: { x: 10, y: 0 },
 		})
 	}, blockId)
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		const stacks = Array.isArray(state?.scaffoldStacks) ? state.scaffoldStacks : []
 		const shapeStacks = stacks.filter((stack: any) => stack.baseSupport === 'shape')
 		const gridStacks = stacks.filter((stack: any) => stack.baseSupport === 'grid')
@@ -143,26 +143,26 @@ test('editing a block onto a shape above its top support level is rejected with 
 	await clickWorldPoint(page, { x: 18, y: 0, z: 0 })
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		return state?.scaffoldBlocks?.length ?? 0
 	}, { timeout: 15000 }).toBe(1)
 
-	const initialState = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+	const initialState = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 	const blockId = initialState?.scaffoldBlocks?.[0]?.id
 	expect(blockId).toBeTruthy()
 
 	await page.evaluate((id) => {
-		;(window as any).__scaffxiqToolDebug?.editBlock?.(id, {
+		;(window as any).__scaffoldproToolDebug?.editBlock?.(id, {
 			center: { x: 0, y: 0 },
 		})
 	}, blockId)
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		return typeof state?.blockPlacementWarning === 'string' && state.blockPlacementWarning.startsWith('Block cannot land here')
 	}, { timeout: 15000 }).toBe(true)
 
-	const finalState = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+	const finalState = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 	expect(finalState?.scaffoldBlocks?.[0]?.center).toEqual({ x: 18, y: 0 })
 	expect(finalState?.blockPlacementWarning).toContain('Block cannot land here')
 })
@@ -174,16 +174,16 @@ test('copy pull can duplicate a block live load setup when Copy live loads is ch
 	await clickWorldPoint(page, { x: 0, y: 0, z: 0 })
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		return state?.scaffoldBlocks?.length ?? 0
 	}, { timeout: 15000 }).toBe(1)
 
-	const initialState = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+	const initialState = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 	const blockId = initialState?.scaffoldBlocks?.[0]?.id
 	expect(blockId).toBeTruthy()
 
 	await page.evaluate((id) => {
-		;(window as any).__scaffxiqToolDebug?.setBlockLiveLoad?.(id, {
+		;(window as any).__scaffoldproToolDebug?.setBlockLiveLoad?.(id, {
 			liveLoadPsf: 75,
 			liveLoadDeckLiftIndices: [4],
 			liveLoadExcludedBayKeys: ['4:0:0'],
@@ -195,16 +195,16 @@ test('copy pull can duplicate a block live load setup when Copy live loads is ch
 	await page.getByLabel('Copy live loads').check()
 
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqBlockToolDebug?.copyBlock === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproBlockToolDebug?.copyBlock === 'function'),
 		{ timeout: 15000 },
 	).toBe(true)
 
 	await page.evaluate((id) => {
-		;(window as any).__scaffxiqBlockToolDebug?.copyBlock?.(id, { x: 7, y: 0 })
+		;(window as any).__scaffoldproBlockToolDebug?.copyBlock?.(id, { x: 7, y: 0 })
 	}, blockId)
 
 	await expect.poll(async () => {
-		const state = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+		const state = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 		const copiedBlock = (state?.scaffoldBlocks ?? []).find((block: any) => Math.abs(Number(block?.center?.x ?? 0) - 7) < 1e-6)
 		if (!copiedBlock) return null
 		return {

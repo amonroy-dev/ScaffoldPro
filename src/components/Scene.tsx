@@ -979,7 +979,7 @@ export function Scene() {
 	useEffect(() => {
 		if (!(import.meta.env.DEV || navigator.webdriver)) return
 		type SceneDebugWindow = Window & {
-			__scaffxiqSceneDebug?: {
+			__scaffoldproSceneDebug?: {
 				setNamedView: (mode: ViewMode) => void
 				getViewMode: () => ViewMode
 				getCameraState: () => {
@@ -997,7 +997,7 @@ export function Scene() {
 			}
 		}
 		const debugWindow = window as SceneDebugWindow
-		debugWindow.__scaffxiqSceneDebug = {
+		debugWindow.__scaffoldproSceneDebug = {
 			setNamedView: requestNamedOrtho,
 			getViewMode: () => viewMode,
 			getCameraState: () => {
@@ -1033,8 +1033,8 @@ export function Scene() {
 			},
 		}
 		return () => {
-			if (debugWindow.__scaffxiqSceneDebug?.setNamedView === requestNamedOrtho) {
-				delete debugWindow.__scaffxiqSceneDebug
+			if (debugWindow.__scaffoldproSceneDebug?.setNamedView === requestNamedOrtho) {
+				delete debugWindow.__scaffoldproSceneDebug
 			}
 		}
 	}, [gl, isOrtho, requestNamedOrtho, viewMode])

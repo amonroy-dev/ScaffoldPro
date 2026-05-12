@@ -27,7 +27,7 @@ interface ScaffoldBaseSettingsContextType {
 
 const ScaffoldBaseSettingsContext = createContext<ScaffoldBaseSettingsContextType | null>(null)
 
-const STORAGE_KEY = 'scaffxiq-scaffold-base-settings'
+const STORAGE_KEY = 'scaffoldpro-scaffold-base-settings'
 const SETTINGS_VERSION = 1
 
 export function ScaffoldBaseSettingsProvider({ children }: { children: ReactNode }) {

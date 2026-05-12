@@ -23,8 +23,15 @@
 }
 
 .legal-logo .logo-icon {
-  color: #4a9eff;
-  font-size: 1.75rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #4a9eff;
+  color: #0a0a0f;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .legal-content {
@@ -79,7 +86,7 @@
 }
 
 .legal-content li::before {
-  content: '•';
+  content: '-';
   color: #4a9eff;
   position: absolute;
   left: 0;

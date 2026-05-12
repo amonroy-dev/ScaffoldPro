@@ -35,12 +35,12 @@ type MapImportDialogProps = {
   onImport: (footprint: ImportedMapFootprint, heightFt: number) => void
 }
 
-const SELECTION_SOURCE_ID = 'scaffxiq-map-import-selection'
-const SELECTION_FILL_ID = 'scaffxiq-map-import-selection-fill'
-const SELECTION_LINE_ID = 'scaffxiq-map-import-selection-line'
-const SELECTION_EXTRUSION_ID = 'scaffxiq-map-import-selection-extrusion'
-const BUILDING_FILL_LAYER_ID = 'scaffxiq-map-import-building-fill'
-const BUILDING_EXTRUSION_LAYER_ID = 'scaffxiq-map-import-building-extrusion'
+const SELECTION_SOURCE_ID = 'scaffoldpro-map-import-selection'
+const SELECTION_FILL_ID = 'scaffoldpro-map-import-selection-fill'
+const SELECTION_LINE_ID = 'scaffoldpro-map-import-selection-line'
+const SELECTION_EXTRUSION_ID = 'scaffoldpro-map-import-selection-extrusion'
+const BUILDING_FILL_LAYER_ID = 'scaffoldpro-map-import-building-fill'
+const BUILDING_EXTRUSION_LAYER_ID = 'scaffoldpro-map-import-building-extrusion'
 const METERS_PER_FOOT = 0.3048
 
 function getFirstSymbolLayerId(map: MapboxMap): string | undefined {
@@ -353,7 +353,7 @@ export function MapImportDialog({ isOpen, onClose, onImport }: MapImportDialogPr
       role="dialog"
       aria-modal="true"
       aria-labelledby="map-import-title"
-      data-scaffxiq-modal="map-import"
+      data-scaffoldpro-modal="map-import"
       onClick={event => {
         if (event.target === event.currentTarget) onClose()
       }}

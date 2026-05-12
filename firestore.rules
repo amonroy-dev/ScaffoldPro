@@ -38,7 +38,7 @@ service cloud.firestore {
         && isOrgMember(getAfter(jobPath(jobId)).data.orgId);
     }
 
-    match /betaAllowlist/{uid} {
+    match /accessAllowlist/{uid} {
       allow get: if isSelf(uid);
       allow list, create, update, delete: if false;
     }

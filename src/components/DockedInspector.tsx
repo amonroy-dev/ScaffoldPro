@@ -11,7 +11,7 @@ type PersistedInspectorUi = {
   dockSide: DockSide
 }
 
-const STORAGE_KEY = 'scaffxiq-inspector-ui'
+const STORAGE_KEY = 'scaffoldpro-inspector-ui'
 
 function isTextInput(el: EventTarget | null) {
   if (!el || !(el instanceof HTMLElement)) return false

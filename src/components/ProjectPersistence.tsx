@@ -68,7 +68,7 @@ export function ProjectPersistence({ projectId }: Props) {
 	latestProjectDataRef.current = projectDataSnapshot
 
   useEffect(() => {
-    // Be robust: even though RequireBetaAccess usually guarantees auth is ready,
+    // Be robust: even though the route guard usually guarantees auth is ready,
     // `auth.currentUser` can still be null momentarily on cold loads.
     const unsub = onAuthStateChanged(auth, u => {
       setUid(u?.uid ?? '')

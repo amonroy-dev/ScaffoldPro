@@ -18,7 +18,7 @@ export default defineConfig({
   globalSetup: './tests/e2e/globalSetup.mjs',
   webServer: [
     {
-      command: 'npx firebase emulators:start --project scaffxiq --only auth,firestore,ui',
+      command: 'npm run functions:build && npx firebase emulators:start --project demo-scaffoldpro --only auth,firestore,functions,ui',
       url: 'http://127.0.0.1:4000',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
@@ -31,6 +31,7 @@ export default defineConfig({
       env: {
         ...process.env,
         VITE_USE_FIREBASE_EMULATORS: '1',
+        VITE_FIREBASE_PROJECT_ID: 'demo-scaffoldpro',
         VITE_FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
         VITE_FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082',
       },

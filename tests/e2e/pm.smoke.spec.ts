@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
 const SEEDED_JOB_TITLE = 'Harbor Tower Scaffold'
 

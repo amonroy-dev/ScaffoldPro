@@ -1192,7 +1192,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			const onKeyDown = (e: KeyboardEvent) => {
 				if (e.metaKey || e.ctrlKey || e.altKey) return
 				if (e.key !== 'Escape' && e.key !== 'Esc') return
-				if (document.querySelector('[data-scaffxiq-modal]')) return
+				if (document.querySelector('[data-scaffoldpro-modal]')) return
 				e.preventDefault()
 				if (categoryKey === 'liveLoads') {
 					setSelectedObjectIdRaw(null)
@@ -1747,7 +1747,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (!(import.meta.env.DEV || navigator.webdriver)) return
 		type ToolDebugWindow = Window & {
-			__scaffxiqToolDebug?: {
+			__scaffoldproToolDebug?: {
 				getBlockState: () => {
 					activeTool: ToolType
 					categoryKey: string | null
@@ -1862,7 +1862,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			}
 		}
 		const debugWindow = window as ToolDebugWindow
-		debugWindow.__scaffxiqToolDebug = {
+		debugWindow.__scaffoldproToolDebug = {
 			getBlockState: () => ({
 				activeTool,
 				categoryKey,
@@ -2116,7 +2116,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			},
 		}
 		return () => {
-			delete debugWindow.__scaffxiqToolDebug
+			delete debugWindow.__scaffoldproToolDebug
 		}
 	}, [activeLiveLoadLevelNumber, activeTool, blockEditActionMode, blockEditMode, blockPlacementWarning, buildingEntities, buildingHostedSketchFaceId, buildingHostedSketchIntent, cameraNavigationActive, categoryKey, requestAutoScaffoldAroundBuilding, selectedBlockIdsRaw, selectedBuildingEntityId, selectedLiveLoadDeckTarget, selectedLiveLoadDeckTargetsRaw, selectedObjectId, workspaceMode])
 
@@ -5228,7 +5228,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 		if (!isBuildingShapeTool && !drawingState.isDrawing && !buildingHostedSketchIntent) return
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.metaKey || e.ctrlKey || e.altKey) return
-			if (document.querySelector('[data-scaffxiq-modal]')) return
+			if (document.querySelector('[data-scaffoldpro-modal]')) return
 			if (e.key === 'Enter' && activeTool === 'polygon' && drawingState.polygonPoints.length >= 3) {
 				e.preventDefault()
 				finishDrawing()

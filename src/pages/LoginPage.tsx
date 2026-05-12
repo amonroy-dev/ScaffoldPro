@@ -1,219 +1,301 @@
-import { useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { signInWithPopup, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db, googleProvider } from '../firebase'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  type User,
+} from 'firebase/auth'
+import { ArrowRight, Building2, KeyRound, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
+import {
+  configuredDomainLabel,
+  emailMatchesConfiguredDomains,
+  isReasonableEmail,
+  isUserApproved,
+  normalizeEmail,
+} from '../auth/access'
+import { auth } from '../firebase'
 import { homePath } from '../pm/utils/pmRoutes'
 import './LoginPage.css'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
+type AuthMode = 'signin' | 'forgot'
+type PendingAction = 'session' | 'signin' | 'reset' | null
 
-  const notInvited = useMemo(() => params.get('notInvited') === '1', [params])
+type RedirectState = {
+  from?: {
+    pathname?: string
+    search?: string
+    hash?: string
+  }
+}
 
-  const isAllowlisted = async (uid: string) => {
-    try {
-      const snap = await getDoc(doc(db, 'betaAllowlist', uid))
-      return snap.exists()
-    } catch {
-      return false
-    }
+function getAuthErrorMessage(error: unknown) {
+  const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : ''
+
+  if (
+    code.includes('auth/invalid-credential') ||
+    code.includes('auth/wrong-password') ||
+    code.includes('auth/user-not-found')
+  ) {
+    return 'We could not sign you in with those credentials.'
   }
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true)
-    setError('')
+  if (code.includes('auth/invalid-email')) return 'Enter a valid work email address.'
+  if (code.includes('auth/user-disabled')) return 'This account is disabled. Contact your ScaffoldPro admin.'
+  if (code.includes('auth/too-many-requests')) return 'Too many attempts. Wait a bit, then try again.'
+  if (code.includes('auth/network-request-failed')) return 'Network trouble. Check your connection and try again.'
+  if (code.includes('auth/operation-not-allowed')) return 'Email sign-in is not enabled yet. Contact your ScaffoldPro admin.'
 
-    try {
-      const cred = await signInWithPopup(auth, googleProvider)
-      const allowed = await isAllowlisted(cred.user.uid)
-      if (!allowed) {
-        setError('This account is not on the closed beta allowlist yet.')
+  return 'Something went wrong. Try again or contact your ScaffoldPro admin.'
+}
+
+function shouldTreatResetAsSuccess(error: unknown) {
+  const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : ''
+  return code.includes('auth/user-not-found') || code.includes('auth/invalid-credential')
+}
+
+export default function LoginPage() {
+  const [mode, setMode] = useState<AuthMode>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [pendingAction, setPendingAction] = useState<PendingAction>('session')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [sessionUser, setSessionUser] = useState<User | null>(null)
+
+  const navigate = useNavigate()
+  const location = useLocation()
+  const domainLabel = useMemo(() => configuredDomainLabel(), [])
+
+  const intendedPath = useMemo(() => {
+    const state = location.state as RedirectState | null
+    const from = state?.from
+    const path = `${from?.pathname ?? ''}${from?.search ?? ''}${from?.hash ?? ''}`
+    if (path && path !== '/' && path !== '/login' && path !== '/pending-access') return path
+    return homePath()
+  }, [location.state])
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async user => {
+      setSessionUser(user)
+
+      if (!user) {
+        setPendingAction(null)
         return
       }
-      navigate(homePath())
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in with Google'
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
+
+      try {
+        if (await isUserApproved(user)) {
+          navigate(intendedPath, { replace: true })
+          return
+        }
+
+        navigate('/pending-access', { replace: true })
+      } catch {
+        navigate('/pending-access', { replace: true })
+      } finally {
+        setPendingAction(null)
+      }
+    })
+
+    return () => unsub()
+  }, [intendedPath, navigate])
+
+  const clearStatus = () => {
+    setError('')
+    setSuccess('')
+  }
+
+  const switchMode = (nextMode: AuthMode) => {
+    setMode(nextMode)
+    setPassword('')
+    clearStatus()
+  }
+
+  const validateEmail = () => {
+    const nextEmail = normalizeEmail(email)
+    if (!isReasonableEmail(nextEmail)) {
+      setError('Enter a valid work email address.')
+      return null
     }
+
+    if (!emailMatchesConfiguredDomains(nextEmail)) {
+      setError(`Use ${domainLabel} to continue.`)
+      return null
+    }
+
+    return nextEmail
+  }
+
+  const handleAfterAuth = async (user: User) => {
+    if (await isUserApproved(user)) {
+      navigate(intendedPath, { replace: true })
+      return
+    }
+
+    navigate('/pending-access', { replace: true })
   }
 
   const handleEmailSignIn = async (event: React.FormEvent) => {
     event.preventDefault()
+    clearStatus()
 
-    setLoading(true)
-    setError('')
+    const nextEmail = validateEmail()
+    if (!nextEmail) return
+
+    if (!password) {
+      setError('Enter your password.')
+      return
+    }
+
+    setPendingAction('signin')
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password)
-      const allowed = await isAllowlisted(cred.user.uid)
-      if (!allowed) {
-        setError('This account is not on the closed beta allowlist yet.')
-        return
-      }
-      navigate(homePath())
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Authentication failed'
-      if (errorMessage.includes('auth/invalid-email')) {
-        setError('Please enter a valid email address')
-      } else if (errorMessage.includes('auth/wrong-password') || errorMessage.includes('auth/user-not-found')) {
-        setError('Invalid email or password')
-      } else {
-        setError(errorMessage)
-      }
+      const credential = await signInWithEmailAndPassword(auth, nextEmail, password)
+      await handleAfterAuth(credential.user)
+    } catch (err) {
+      setError(getAuthErrorMessage(err))
     } finally {
-      setLoading(false)
+      setPendingAction(null)
     }
   }
+
+  const handlePasswordReset = async (event: React.FormEvent) => {
+    event.preventDefault()
+    clearStatus()
+
+    const nextEmail = validateEmail()
+    if (!nextEmail) return
+
+    setPendingAction('reset')
+
+    try {
+      await sendPasswordResetEmail(auth, nextEmail)
+      setSuccess('If an account exists for that email, we sent a reset link.')
+    } catch (err) {
+      if (shouldTreatResetAsSuccess(err)) {
+        setSuccess('If an account exists for that email, we sent a reset link.')
+      } else {
+        setError(getAuthErrorMessage(err))
+      }
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  const isLoading = pendingAction !== null
+  const submitLabel = pendingAction === 'signin' ? 'Signing in...' : 'Sign in'
+  const resetLabel = pendingAction === 'reset' ? 'Sending reset link...' : 'Send reset link'
 
   return (
     <div className="login-page">
       <div className="login-page-shell">
         <header className="login-topbar">
-          <Link to="/" className="login-brand">
+          <Link to="/" className="login-brand" aria-label="ScaffoldPro sign in">
             <span className="login-brand-mark">SP</span>
             <span className="login-brand-copy">
               <strong>ScaffoldPro</strong>
-              <small>Scaffold planning system</small>
+              <small>Internal work tool</small>
             </span>
           </Link>
 
           <div className="login-topbar-actions">
-            <Link to="/" className="login-topbar-link">Back to landing</Link>
-            <Link to="/#waitlist" className="login-topbar-cta">Request access</Link>
+            <span className="login-topbar-status">
+              <ShieldCheck size={16} aria-hidden="true" />
+              Company access only
+            </span>
           </div>
         </header>
 
         <main className="login-main">
-          <section className="login-story">
-            <div className="login-story-pill">
-              <span className="login-story-pill-dot" aria-hidden="true" />
-              Private beta for scaffold design and operations teams
-            </div>
-
-            <h1 className="login-title">
-              Sign in to the
-              <span>same planning system.</span>
-            </h1>
-
-            <p className="login-story-text">
-              The sign-in experience should feel like the rest of ScaffoldPro: bright surfaces, strong hierarchy,
-              and a clean path into model, drawings, takeoff, and delivery.
-            </p>
-
-            <div className="login-story-points">
-              <span>Model-first workspace</span>
-              <span>Drawing output</span>
-              <span>Takeoff + PM continuity</span>
-            </div>
-
-            <div className="login-story-preview" aria-hidden="true">
-              <div className="login-preview-feature">
-                <p>Connected platform</p>
-                <strong>Approved teams enter one calm workspace from planning through handoff.</strong>
-                <span>Same product language. Same output chain. No disconnected screens.</span>
-              </div>
-
-              <div className="login-preview-grid">
-                <div className="login-preview-card">
-                  <p>Drawings</p>
-                  <strong>Viewport control and issue-ready sheets</strong>
-                </div>
-                <div className="login-preview-card">
-                  <p>Delivery</p>
-                  <strong>Takeoff and PM stay attached to the package</strong>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="login-panel">
+          <section className="login-panel" aria-label="Authentication">
             <div className="login-card">
-              <div className="beta-pill">Closed beta • Invite only</div>
-              <h2>Beta sign in</h2>
+              <div className="login-card-icon" aria-hidden="true">
+                {mode === 'signin' ? <LockKeyhole size={22} /> : <KeyRound size={22} />}
+              </div>
+
+              <h2>{mode === 'signin' ? 'Welcome back' : 'Reset your password'}</h2>
               <p className="login-subtitle">
-                Sign in with an approved account. Need access?{' '}
-                <Link to="/#waitlist">Join the waitlist</Link>.
+                {mode === 'signin'
+                  ? `Use ${domainLabel} and your ScaffoldPro password.`
+                  : 'Enter your work email and Firebase will send the password reset link.'}
               </p>
 
-              {notInvited ? (
+              {sessionUser ? (
                 <div className="login-banner" role="status">
-                  Your account is signed in, but it is not approved for the closed beta yet. If you believe
-                  this is a mistake, contact support or join the waitlist.
+                  Signed in as {sessionUser.email ?? 'your company account'}. Checking internal access...
                 </div>
               ) : null}
 
-              <button
-                className="google-btn"
-                onClick={handleGoogleSignIn}
-                disabled={loading}
+              <form
+                onSubmit={mode === 'signin' ? handleEmailSignIn : handlePasswordReset}
+                className="login-form"
               >
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                Continue with Google
-              </button>
-
-              <div className="divider">
-                <span>or continue with email</span>
-              </div>
-
-              <form onSubmit={handleEmailSignIn} className="login-form">
-                <label className="login-field">
-                  <span>Email</span>
-                  <input
-                    type="email"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={event => setEmail(event.target.value)}
-                    required
-                  />
+                <label className="login-field" htmlFor="login-email">
+                  <span>Work email</span>
+                  <div className="login-input-wrap">
+                    <Mail size={18} aria-hidden="true" />
+                    <input
+                      id="login-email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      placeholder="name@company.com"
+                      value={email}
+                      onChange={event => setEmail(event.target.value)}
+                      required
+                    />
+                  </div>
                 </label>
 
-                <label className="login-field">
-                  <span>Password</span>
-                  <input
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={event => setPassword(event.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </label>
+                {mode === 'signin' ? (
+                  <label className="login-field" htmlFor="login-password">
+                    <span>Password</span>
+                    <div className="login-input-wrap">
+                      <KeyRound size={18} aria-hidden="true" />
+                      <input
+                        id="login-password"
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={event => setPassword(event.target.value)}
+                        required
+                      />
+                    </div>
+                  </label>
+                ) : null}
 
-                {error ? <p className="login-error">{error}</p> : null}
+                <div className="login-form-row">
+                  {mode === 'signin' ? (
+                    <button type="button" className="login-text-btn" onClick={() => switchMode('forgot')}>
+                      Forgot password?
+                    </button>
+                  ) : (
+                    <button type="button" className="login-text-btn" onClick={() => switchMode('signin')}>
+                      Back to sign in
+                    </button>
+                  )}
+                </div>
 
-                <button type="submit" className="submit-btn" disabled={loading}>
-                  {loading ? 'Please wait...' : 'Sign in'}
+                <div className="login-status" aria-live="polite">
+                  {error ? <p className="login-error">{error}</p> : null}
+                  {success ? <p className="login-success">{success}</p> : null}
+                </div>
+
+                <button type="submit" className="submit-btn" disabled={isLoading}>
+                  {mode === 'signin' ? submitLabel : resetLabel}
+                  <ArrowRight size={18} aria-hidden="true" />
                 </button>
               </form>
 
-              {auth.currentUser ? (
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={() => signOut(auth)}
-                  disabled={loading}
-                >
-                  Sign out
-                </button>
-              ) : null}
-
-              <p className="legal-note">
-                By continuing, you agree to our <Link to="/terms" target="_blank">Terms</Link> and{' '}
-                <Link to="/privacy" target="_blank">Privacy Policy</Link>.
-              </p>
+              <div className="login-admin-note">
+                <Building2 size={18} aria-hidden="true" />
+                <p>
+                  Need access? Ask your ScaffoldPro admin to create your Firebase Auth account and approve your
+                  workspace access.
+                </p>
+              </div>
             </div>
           </section>
         </main>

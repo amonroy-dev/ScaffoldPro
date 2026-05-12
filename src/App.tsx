@@ -24,7 +24,7 @@ function isTextInputTarget(target: EventTarget | null): boolean {
 }
 
 function hasBlockingModalOpen(): boolean {
-	return !!document.querySelector('[data-scaffxiq-modal]')
+	return !!document.querySelector('[data-scaffoldpro-modal]')
 }
 
 function parseDiagonalSelectionId(selectedObjectId: string | null): {

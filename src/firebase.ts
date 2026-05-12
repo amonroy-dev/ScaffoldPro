@@ -1,29 +1,29 @@
-// Firebase configuration for ScaffoldPro
+// Firebase configuration for ScaffoldPro.
 import { getAnalytics } from 'firebase/analytics'
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth'
+import { connectAuthEmulator, getAuth } from 'firebase/auth'
 import { connectFirestoreEmulator, enableIndexedDbPersistence, getFirestore } from 'firebase/firestore'
 
-// Your web app's Firebase configuration
+const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === '1'
+
 const firebaseConfig = {
-  apiKey: 'AIzaSyATS9c7hiHrToA2umS_9v2-AOjd2TRKixA',
-  authDomain: 'scaffxiq.firebaseapp.com',
-  projectId: 'scaffxiq',
-  storageBucket: 'scaffxiq.firebasestorage.app',
-  messagingSenderId: '880350563490',
-  appId: '1:880350563490:web:ba6867d06ffc4185a0dbfb',
-  measurementId: 'G-TLZLC3M3JC',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? 'demo-api-key',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? undefined,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? (useEmulators ? 'demo-scaffoldpro' : ''),
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? undefined,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? undefined,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? 'demo-app-id',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? undefined,
 }
 
-// Initialize Firebase
+if (!firebaseConfig.projectId && !useEmulators) {
+  console.warn('Missing VITE_FIREBASE_PROJECT_ID. Add Firebase web config values to your local .env file.')
+}
+
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
-// Initialize services
 export const auth = getAuth(app)
-export const googleProvider = new GoogleAuthProvider()
 export const db = getFirestore(app)
-
-const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === '1'
 
 if (useEmulators && typeof window !== 'undefined') {
   const authHost = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'
@@ -44,8 +44,8 @@ if (useEmulators && typeof window !== 'undefined') {
   }
 }
 
-// Initialize Analytics (only in browser)
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null
+export const analytics =
+  typeof window !== 'undefined' && firebaseConfig.measurementId ? getAnalytics(app) : null
 
 let offlinePersistenceRequested = false
 
@@ -68,4 +68,3 @@ export async function requestOfflinePersistence() {
 }
 
 export default app
-

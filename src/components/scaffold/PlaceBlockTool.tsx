@@ -1364,7 +1364,7 @@ export function PlaceBlockTool() {
 	useEffect(() => {
 		if (!(import.meta.env.DEV || navigator.webdriver)) return
 		type BlockEditDebugWindow = Window & {
-			__scaffxiqBlockEditDebug?: {
+			__scaffoldproBlockEditDebug?: {
 				getCopyCommitSummary: () => {
 					previewCountBeforeRelease: number
 					nearestPreviewCount: number
@@ -1375,12 +1375,12 @@ export function PlaceBlockTool() {
 			}
 		}
 		const debugWindow = window as BlockEditDebugWindow
-		debugWindow.__scaffxiqBlockEditDebug = {
+		debugWindow.__scaffoldproBlockEditDebug = {
 			getCopyCommitSummary: () => lastCopyCommitSummaryRef.current,
 		}
 		return () => {
-			if (debugWindow.__scaffxiqBlockEditDebug?.getCopyCommitSummary) {
-				delete debugWindow.__scaffxiqBlockEditDebug
+			if (debugWindow.__scaffoldproBlockEditDebug?.getCopyCommitSummary) {
+				delete debugWindow.__scaffoldproBlockEditDebug
 			}
 		}
 	}, [])
@@ -3166,12 +3166,12 @@ export function PlaceBlockTool() {
 		useEffect(() => {
 			if (!(import.meta.env.DEV || navigator.webdriver)) return
 			type BlockToolDebugWindow = Window & {
-				__scaffxiqBlockToolDebug?: {
+				__scaffoldproBlockToolDebug?: {
 					copyBlock: (blockId: string, center: { x: number; y: number }) => boolean
 				}
 			}
 			const debugWindow = window as BlockToolDebugWindow
-			debugWindow.__scaffxiqBlockToolDebug = {
+			debugWindow.__scaffoldproBlockToolDebug = {
 				copyBlock: (blockId, center) => {
 					const block = blockById.get(blockId)
 					if (!block) return false
@@ -3188,7 +3188,7 @@ export function PlaceBlockTool() {
 				},
 			}
 			return () => {
-				delete debugWindow.__scaffxiqBlockToolDebug
+				delete debugWindow.__scaffoldproBlockToolDebug
 			}
 		}, [blockById, existingByKey, getCopyLoadMetadataFromBlock, getPlacementRecipeFromBlock, placeBlockWithRecipe])
 		useEffect(() => {

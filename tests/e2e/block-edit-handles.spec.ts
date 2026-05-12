@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
 
 async function login(page: Page) {
@@ -26,10 +26,10 @@ async function openCanvasWorkspace(page: Page) {
 	await expect(page).toHaveURL(/\/jobs\/[^/]+\/canvas$/)
 
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqToolDebug?.getBlockState === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproToolDebug?.getBlockState === 'function'),
 	).toBe(true)
 	await expect.poll(
-		async () => page.evaluate(() => typeof (window as any).__scaffxiqSceneDebug?.setNamedView === 'function'),
+		async () => page.evaluate(() => typeof (window as any).__scaffoldproSceneDebug?.setNamedView === 'function'),
 	).toBe(true)
 }
 
@@ -62,11 +62,11 @@ async function activateLiveLoadTool(page: Page) {
 }
 
 async function getBlockState(page: Page) {
-	return page.evaluate(() => (window as any).__scaffxiqToolDebug?.getBlockState?.() ?? null)
+	return page.evaluate(() => (window as any).__scaffoldproToolDebug?.getBlockState?.() ?? null)
 }
 
 async function getCameraState(page: Page) {
-	return page.evaluate(() => (window as any).__scaffxiqSceneDebug?.getCameraState?.() ?? null)
+	return page.evaluate(() => (window as any).__scaffoldproSceneDebug?.getCameraState?.() ?? null)
 }
 
 function cameraDeltaMagnitude(
@@ -181,13 +181,13 @@ async function getHandleClientPoint(
 	if (!block) return null
 
 	return page.evaluate(
-		(point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null,
+		(point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null,
 		getHandleWorldPoint(block, side, target),
 	)
 }
 
 async function clickWorldPoint(page: Page, point: { x: number; y: number; z?: number }) {
-	const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
+	const clientPoint = await page.evaluate((worldPoint) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
 		x: point.x,
 		y: point.y,
 		z: point.z ?? 0,
@@ -204,12 +204,12 @@ async function dragWorldSelection(
 	modifier?: 'Control' | 'Meta',
 ) {
 	const [startPoint, endPoint] = await Promise.all([
-		page.evaluate((worldPoint) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
+		page.evaluate((worldPoint) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
 			x: start.x,
 			y: start.y,
 			z: start.z ?? 0,
 		}),
-		page.evaluate((worldPoint) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
+		page.evaluate((worldPoint) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(worldPoint) ?? null, {
 			x: end.x,
 			y: end.y,
 			z: end.z ?? 0,
@@ -248,13 +248,13 @@ async function dragRightHandleToCopy(page: Page, view: 'perspective' | 'top') {
 
 	await page.getByTitle('Edit existing blocks (selection mode)').click()
 	if (view === 'top') {
-		await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+		await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 		await page.waitForTimeout(500)
 	}
 	await page.evaluate(() => {
-		const state = (window as any).__scaffxiqToolDebug?.getBlockState?.()
+		const state = (window as any).__scaffoldproToolDebug?.getBlockState?.()
 		const firstId = state?.scaffoldBlocks?.[0]?.id
-		if (firstId) (window as any).__scaffxiqToolDebug?.selectBlocks?.([firstId])
+		if (firstId) (window as any).__scaffoldproToolDebug?.selectBlocks?.([firstId])
 	})
 	await page.getByTitle(/Copy Pull mode/i).click()
 
@@ -308,12 +308,12 @@ async function dragLeftHandleNearThresholdToCopy(page: Page) {
 	}).toBe(1)
 
 	await page.getByTitle('Edit existing blocks (selection mode)').click()
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(500)
 	await page.evaluate(() => {
-		const state = (window as any).__scaffxiqToolDebug?.getBlockState?.()
+		const state = (window as any).__scaffoldproToolDebug?.getBlockState?.()
 		const firstId = state?.scaffoldBlocks?.[0]?.id
-		if (firstId) (window as any).__scaffxiqToolDebug?.selectBlocks?.([firstId])
+		if (firstId) (window as any).__scaffoldproToolDebug?.selectBlocks?.([firstId])
 	})
 	await page.getByTitle(/Copy Pull mode/i).click()
 
@@ -338,7 +338,7 @@ async function dragLeftHandleNearThresholdToCopy(page: Page) {
 		y: block.center.y,
 		z: block.heightFt / 2,
 	}
-	const targetPoint = await page.evaluate((point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null, targetWorldPoint)
+	const targetPoint = await page.evaluate((point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null, targetWorldPoint)
 	expect(targetPoint).not.toBeNull()
 
 	await page.mouse.move(handlePoint!.x, handlePoint!.y)
@@ -390,7 +390,7 @@ test('block tool opens in neutral block mode and 3D body click selects the block
 	const state = await getBlockState(page)
 	const block = state?.scaffoldBlocks?.[0]
 	expect(block).toBeTruthy()
-	const bodyPoint = await page.evaluate((point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null, {
+	const bodyPoint = await page.evaluate((point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null, {
 		x: block.center.x,
 		y: block.center.y,
 		z: Math.max(1, block.heightFt * 0.5),
@@ -512,7 +512,7 @@ test('right-drag orbit over scaffold does not select nearby members', async ({ p
 	const rotIsOdd = rotationSteps % 2 === 1
 	const worldWidthFt = rotIsOdd ? block.depthFt : block.widthFt
 	const worldDepthFt = rotIsOdd ? block.widthFt : block.depthFt
-	const orbitStart = await page.evaluate((point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null, {
+	const orbitStart = await page.evaluate((point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null, {
 		x: block.center.x - worldWidthFt / 2 + 0.08,
 		y: block.center.y - worldDepthFt / 2 + 0.08,
 		z: Math.max(2, block.heightFt * 0.45),
@@ -607,7 +607,7 @@ test('move mode keeps neighboring blocks rigid when dragging a block handle', as
 		.locator('input')
 		.first()
 		.fill('4')
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(300)
 
 	await clickWorldPoint(page, { x: 0, y: 0 })
@@ -631,8 +631,8 @@ test('move mode keeps neighboring blocks rigid when dragging a block handle', as
 	if (!horizontalBlock || !verticalBlock) throw new Error('Expected one horizontal and one vertical block for move rigidity test')
 
 	await page.evaluate(({ horizontalId, verticalId }) => {
-		;(window as any).__scaffxiqToolDebug?.editBlock?.(horizontalId, { center: { x: 0, y: 0 } })
-		;(window as any).__scaffxiqToolDebug?.editBlock?.(verticalId, { center: { x: 6, y: 6 } })
+		;(window as any).__scaffoldproToolDebug?.editBlock?.(horizontalId, { center: { x: 0, y: 0 } })
+		;(window as any).__scaffoldproToolDebug?.editBlock?.(verticalId, { center: { x: 6, y: 6 } })
 	}, { horizontalId: horizontalBlock.id, verticalId: verticalBlock.id })
 
 	await expect.poll(async () => {
@@ -654,7 +654,7 @@ test('move mode keeps neighboring blocks rigid when dragging a block handle', as
 
 	await page.getByTitle(/Edit Blocks selection mode|Edit existing blocks \(selection mode\)/i).click()
 	await page.evaluate((id) => {
-		if (id) (window as any).__scaffxiqToolDebug?.selectBlocks?.([id])
+		if (id) (window as any).__scaffoldproToolDebug?.selectBlocks?.([id])
 	}, horizontalBlock.id)
 	await page.getByTitle(/Move mode/i).click()
 
@@ -663,7 +663,7 @@ test('move mode keeps neighboring blocks rigid when dragging a block handle', as
 	const handleWorldPoint = getHandleWorldPoint(movedBlock, 'left', 'head')
 	const handlePoint = await getHandleClientPoint(page, 'left', 'head', horizontalBlock.id)
 	const targetPoint = await page.evaluate(
-		(point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null,
+		(point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null,
 		{ ...handleWorldPoint, x: handleWorldPoint.x - 2 },
 	)
 	if (!handlePoint || !targetPoint) throw new Error('Expected move handle projection points to be available')
@@ -709,7 +709,7 @@ test('group move removes old shared seam stacks instead of leaving ghost legs be
 		.locator('input')
 		.first()
 		.fill('4')
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(500)
 
 	await clickWorldPoint(page, { x: 0, y: 0 })
@@ -726,7 +726,7 @@ test('group move removes old shared seam stacks instead of leaving ghost legs be
 	if (sortedBlocks.length !== 3) throw new Error('Expected exactly three blocks for grouped move test')
 
 	await page.evaluate((blockIds) => {
-		const debug = (window as any).__scaffxiqToolDebug
+		const debug = (window as any).__scaffoldproToolDebug
 		blockIds.forEach((blockId: string, index: number) => {
 			debug?.editBlock?.(blockId, { center: { x: index * 8, y: 0 } })
 		})
@@ -747,18 +747,18 @@ test('group move removes old shared seam stacks instead of leaving ghost legs be
 
 	await page.getByTitle(/Edit Blocks selection mode|Edit existing blocks \(selection mode\)/i).click()
 	await page.evaluate((ids) => {
-		;(window as any).__scaffxiqToolDebug?.selectBlocks?.(ids)
+		;(window as any).__scaffoldproToolDebug?.selectBlocks?.(ids)
 	}, sortedBlocks.map((block: any) => block.id))
 	await page.getByTitle(/Move mode/i).click()
 
 	const middleBlock = { ...sortedBlocks[1], center: { x: 8, y: 0 } }
 	const [startPoint, targetPoint] = await Promise.all([
 		page.evaluate(
-			(point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null,
+			(point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null,
 			{ x: middleBlock.center.x, y: middleBlock.center.y, z: middleBlock.heightFt / 2 },
 		),
 		page.evaluate(
-			(point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null,
+			(point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null,
 			{ x: middleBlock.center.x, y: middleBlock.center.y + 6, z: middleBlock.heightFt / 2 },
 		),
 	])
@@ -812,7 +812,7 @@ test('top-view copy allows corner-touch adjacency when arraying from an L-shape'
 	await openCanvasWorkspace(page)
 	await enterBlockTool(page)
 	await enableBlockPlacement(page)
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(500)
 
 	await clickWorldPoint(page, { x: 0, y: 0 })
@@ -836,7 +836,7 @@ test('top-view copy allows corner-touch adjacency when arraying from an L-shape'
 	const verticalBlock = state?.scaffoldBlocks?.[1]
 	expect(verticalBlock).toBeTruthy()
 	await page.evaluate((id) => {
-		if (id) (window as any).__scaffxiqToolDebug?.selectBlocks?.([id])
+		if (id) (window as any).__scaffoldproToolDebug?.selectBlocks?.([id])
 	}, verticalBlock?.id)
 	await page.getByTitle(/Copy Pull mode/i).click()
 
@@ -857,7 +857,7 @@ test('top-view copy allows corner-touch adjacency when arraying from an L-shape'
 		y: verticalBlock.center.y,
 		z: verticalBlock.heightFt / 2,
 	}
-	const targetPoint = await page.evaluate((point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null, targetWorldPoint)
+	const targetPoint = await page.evaluate((point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null, targetWorldPoint)
 	expect(targetPoint).not.toBeNull()
 	await page.mouse.move(handlePoint!.x, handlePoint!.y)
 	await page.mouse.down()
@@ -875,7 +875,7 @@ test('live load section click focuses a section card with include exclude toggle
 	await openCanvasWorkspace(page)
 	await enterBlockTool(page)
 	await enableBlockPlacement(page)
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(500)
 
 	await clickWorldPoint(page, { x: 0, y: 0 })
@@ -937,7 +937,7 @@ test('top-view live load click and marquee operate on the active level only', as
 		.locator('input')
 		.first()
 		.fill('3')
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(300)
 	await clickWorldPoint(page, { x: 0, y: 0 })
 
@@ -949,7 +949,7 @@ test('top-view live load click and marquee operate on the active level only', as
 	await activateLiveLoadTool(page)
 	await page.getByRole('button', { name: /Level 1/i }).click()
 	await page.getByRole('button', { name: /Level 2/i }).click()
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(300)
 
 	await expect.poll(async () => {
@@ -1001,7 +1001,7 @@ test('top-view middle-mouse drag pans while in live load mode', async ({ page })
 	await openCanvasWorkspace(page)
 	await enterBlockTool(page)
 	await enableBlockPlacement(page)
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(500)
 
 	const canvas = page.locator('canvas').first()
@@ -1021,7 +1021,7 @@ test('top-view middle-mouse drag pans while in live load mode', async ({ page })
 	const block = state?.scaffoldBlocks?.[0]
 	expect(block).toBeTruthy()
 	const dragStart = await page.evaluate(
-		(point) => (window as any).__scaffxiqSceneDebug?.projectWorldToClient?.(point) ?? null,
+		(point) => (window as any).__scaffoldproSceneDebug?.projectWorldToClient?.(point) ?? null,
 		{
 			x: block.center.x,
 			y: block.center.y,
@@ -1052,7 +1052,7 @@ test('top-view middle-mouse drag pans while in live load mode', async ({ page })
 
 test('auto around building creates optimized scaffold runs around the target building', async ({ page }) => {
 	await openCanvasWorkspace(page)
-	const buildingId = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.addBuildingBox?.({
+	const buildingId = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.addBuildingBox?.({
 		widthFt: 24,
 		depthFt: 16,
 		heightFt: 20,
@@ -1091,7 +1091,7 @@ test('auto around building creates optimized scaffold runs around the target bui
 
 test('auto around building results stay individually selectable as segment blocks', async ({ page }) => {
 	await openCanvasWorkspace(page)
-	const buildingId = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.addBuildingBox?.({
+	const buildingId = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.addBuildingBox?.({
 		widthFt: 24,
 		depthFt: 16,
 		heightFt: 20,
@@ -1113,7 +1113,7 @@ test('auto around building results stay individually selectable as segment block
 	}).toBeGreaterThanOrEqual(12)
 
 	await page.getByTitle('Edit existing blocks (selection mode)').click()
-	await page.evaluate(() => (window as any).__scaffxiqSceneDebug?.setNamedView?.('ortho-top'))
+	await page.evaluate(() => (window as any).__scaffoldproSceneDebug?.setNamedView?.('ortho-top'))
 	await page.waitForTimeout(300)
 
 	const state = await getBlockState(page)
@@ -1125,7 +1125,7 @@ test('auto around building results stay individually selectable as segment block
 	expect((candidateBlock?.widthFt ?? 0) > (candidateBlock?.depthFt ?? 0)).toBe(true)
 
 	await page.evaluate((blockId) => {
-		;(window as any).__scaffxiqToolDebug?.selectBlocks?.([blockId])
+		;(window as any).__scaffoldproToolDebug?.selectBlocks?.([blockId])
 	}, candidateBlock!.id)
 
 	await expect.poll(async () => {
@@ -1143,7 +1143,7 @@ test('auto around building results stay individually selectable as segment block
 
 test('auto scaffold modal stays open while selecting numeric text', async ({ page }) => {
 	await openCanvasWorkspace(page)
-	const buildingId = await page.evaluate(() => (window as any).__scaffxiqToolDebug?.addBuildingBox?.({
+	const buildingId = await page.evaluate(() => (window as any).__scaffoldproToolDebug?.addBuildingBox?.({
 		widthFt: 24,
 		depthFt: 16,
 		heightFt: 20,

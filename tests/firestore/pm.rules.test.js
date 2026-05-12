@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
 
-const PROJECT_ID = 'scaffxiq'
+const PROJECT_ID = 'demo-scaffoldpro'
 const rules = readFileSync('firestore.rules', 'utf8')
 const [host, portRaw] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8082').split(':')
 const port = Number(portRaw || '8082')
@@ -26,7 +26,7 @@ async function seedWorkspace() {
     })
     await setDoc(doc(db, 'orgs', 'org_owner', 'members', 'owner'), {
       uid: 'owner',
-      email: 'owner@scaffxiq.test',
+      email: 'owner@scaffoldpro.test',
       displayName: 'Owner User',
       role: 'owner',
     })
@@ -76,13 +76,13 @@ after(async () => {
   await testEnv.cleanup()
 })
 
-test('beta allowlist supports self-read and blocks cross-user reads', async () => {
+test('access allowlist supports self-read and blocks cross-user reads', async () => {
   await testEnv.withSecurityRulesDisabled(async context => {
-    await setDoc(doc(context.firestore(), 'betaAllowlist', 'owner'), { invitedBy: 'system' })
+    await setDoc(doc(context.firestore(), 'accessAllowlist', 'owner'), { active: true, approvedBy: 'system' })
   })
 
-  await assertSucceeds(getDoc(doc(authedDb('owner'), 'betaAllowlist', 'owner')))
-  await assertFails(getDoc(doc(authedDb('other'), 'betaAllowlist', 'owner')))
+  await assertSucceeds(getDoc(doc(authedDb('owner'), 'accessAllowlist', 'owner')))
+  await assertFails(getDoc(doc(authedDb('other'), 'accessAllowlist', 'owner')))
 })
 
 test('legacy project paths preserve self access and deny other users', async () => {
@@ -108,7 +108,7 @@ test('default PM workspace bootstrap can create org and self membership in one b
   })
   batch.set(doc(db, 'orgs', 'org_owner', 'members', 'owner'), {
     uid: 'owner',
-    email: 'owner@scaffxiq.test',
+    email: 'owner@scaffoldpro.test',
     displayName: 'Owner User',
     role: 'owner',
   })

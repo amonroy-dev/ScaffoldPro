@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffxiq.test'
+const DEMO_EMAIL = process.env.PM_E2E_EMAIL || 'pm-demo@scaffoldpro.test'
 const DEMO_PASSWORD = process.env.PM_E2E_PASSWORD || 'Password123!'
 
 test('debug create-job landing state', async ({ page }) => {
