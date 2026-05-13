@@ -99,6 +99,91 @@ function DistanceLine({ start, end }: { start: { x: number; y: number }; end: { 
 	return <primitive object={lineObj} raycast={() => null} />
 }
 
+const DIM_Z = 0.12          // just above base plates
+const DIM_OFFSET = 0.45     // perpendicular offset for dim line (ft)
+const DIM_TICK_HALF = 0.18  // half-length of the slash tick (ft)
+
+/** Permanent engineering-drawing style dimension annotation. */
+function PermanentDimension({ start, end, distance, onRemove }: {
+	start: { x: number; y: number }
+	end: { x: number; y: number }
+	distance: number
+	onRemove: () => void
+}) {
+	const linesObj = useMemo(() => {
+		const dx = end.x - start.x, dy = end.y - start.y
+		const len = Math.sqrt(dx * dx + dy * dy)
+		if (len < 0.01) return null
+		const ux = dx / len, uy = dy / len   // unit along dim direction
+		const px = -uy, py = ux              // unit perpendicular (left of direction)
+
+		// Offset dim line endpoints
+		const Ax = start.x + px * DIM_OFFSET, Ay = start.y + py * DIM_OFFSET
+		const Bx = end.x   + px * DIM_OFFSET, By = end.y   + py * DIM_OFFSET
+
+		// Slash tick direction: 45° between along and perp directions
+		const rtx = ux + px, rty = uy + py
+		const tLen = Math.sqrt(rtx * rtx + rty * rty)
+		const tx = (rtx / tLen) * DIM_TICK_HALF
+		const ty = (rty / tLen) * DIM_TICK_HALF
+
+		const overshoot = 0.07  // extension lines overshoot the dim line slightly
+		const verts = new Float32Array([
+			// Main dimension line
+			Ax, Ay, DIM_Z,  Bx, By, DIM_Z,
+			// Extension line at start
+			start.x, start.y, DIM_Z,  Ax + px * overshoot, Ay + py * overshoot, DIM_Z,
+			// Extension line at end
+			end.x, end.y, DIM_Z,  Bx + px * overshoot, By + py * overshoot, DIM_Z,
+			// Slash tick at A
+			Ax - tx, Ay - ty, DIM_Z,  Ax + tx, Ay + ty, DIM_Z,
+			// Slash tick at B
+			Bx - tx, By - ty, DIM_Z,  Bx + tx, By + ty, DIM_Z,
+		])
+		const geo = new THREE.BufferGeometry()
+		geo.setAttribute('position', new THREE.BufferAttribute(verts, 3))
+		const mat = new THREE.LineBasicMaterial({ color: '#3b82f6' })
+		return new THREE.LineSegments(geo, mat)
+	}, [start.x, start.y, end.x, end.y])
+
+	useEffect(() => () => {
+		linesObj?.geometry.dispose()
+		;(linesObj?.material as THREE.Material | undefined)?.dispose()
+	}, [linesObj])
+
+	if (!linesObj) return null
+
+	// Label position: midpoint of the offset dim line, slightly above
+	const dx = end.x - start.x, dy = end.y - start.y
+	const len = Math.sqrt(dx * dx + dy * dy)
+	const ux = dx / len, uy = dy / len
+	const px = -uy, py = ux
+	const midX = (start.x + end.x) / 2 + px * DIM_OFFSET
+	const midY = (start.y + end.y) / 2 + py * DIM_OFFSET
+
+	return (
+		<>
+			<primitive object={linesObj} raycast={() => null} />
+			<Html
+				position={[midX, midY, DIM_Z + 0.05]}
+				center
+				zIndexRange={[200, 201]}
+				style={{ pointerEvents: 'none', userSelect: 'none' }}
+			>
+				<div className="perm-dim-label">
+					<span className="perm-dim-value">{distance.toFixed(2)}</span>
+					<span className="perm-dim-unit"> ft</span>
+					<button
+						className="perm-dim-close"
+						style={{ pointerEvents: 'auto' }}
+						onClick={onRemove}
+					>×</button>
+				</div>
+			</Html>
+		</>
+	)
+}
+
 function isTextInputFocused() {
 	const el = document.activeElement
 	if (!el) return false
@@ -649,6 +734,15 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		}
 		return ids
 	}, [blockDragHiddenStackIds, movingBlockIdSet, scaffoldBlocks, scaffoldStacks])
+
+	// ─── Permanent copy dimensions ──────────────────────────────────────────
+	type PermanentDimRecord = {
+		id: string
+		start: { x: number; y: number }
+		end: { x: number; y: number }
+		distance: number
+	}
+	const [permanentDims, setPermanentDims] = useState<PermanentDimRecord[]>([])
 
 	// ─── Stack move/copy state ───────────────────────────────────────────────
 	type StackMarqueeState = {
@@ -1946,6 +2040,18 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 					}
 				}
 			}
+			// Add permanent dimension annotation after placement
+			const anchor = stackMoveAnchorRef.current
+			const hud = stackCadHudRef.current
+			if (anchor && hud && hud.distance > 0.05) {
+				const dimEnd = { x: anchor.x + dx, y: anchor.y + dy }
+				setPermanentDims(prev => [...prev, {
+					id: `dim-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+					start: anchor,
+					end: dimEnd,
+					distance: hud.distance,
+				}])
+			}
 			cancelStackMove()
 		}
 
@@ -2653,6 +2759,17 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 						/>
 					</mesh>
 				)}
+
+				{/* Permanent dimension annotations (created after each copy/move placement) */}
+				{permanentDims.map(dim => (
+					<PermanentDimension
+						key={dim.id}
+						start={dim.start}
+						end={dim.end}
+						distance={dim.distance}
+						onRemove={() => setPermanentDims(prev => prev.filter(d => d.id !== dim.id))}
+					/>
+				))}
 
 				{/* Distance line + midpoint label during 'place' step */}
 				{stackMoveStep === 'place' && stackMoveAnchor && stackPreviewOffset && stackCadHud && (
