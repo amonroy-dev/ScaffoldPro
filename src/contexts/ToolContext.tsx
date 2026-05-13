@@ -107,6 +107,15 @@ export type BlockToolSettings = {
 export type BlockToolMode = 'assemble' | 'inspect'
 export type BlockEditActionMode = 'neutral' | 'select' | 'copy' | 'move'
 
+export type StackCadHud = {
+	distance: number       // ft
+	angle: number          // degrees, 0=East CCW
+	field: 'distance' | 'angle'
+	distanceInput: string  // raw typed string
+	angleInput: string
+	lockedAngleDeg: number | null
+}
+
 // View modes for camera
 export type ViewMode = 'perspective' | 'ortho-top' | 'ortho-front' | 'ortho-right' | 'ortho-left' | 'ortho-back' | 'ortho-bottom' | 'ortho-custom'
 
@@ -414,6 +423,14 @@ interface ToolContextType {
 			setBlockEditMode: (enabled: boolean) => void
 			blockEditActionMode: BlockEditActionMode
 			setBlockEditActionMode: (mode: BlockEditActionMode) => void
+			stackEditActionMode: 'neutral' | 'move' | 'copy'
+			setStackEditActionMode: (mode: 'neutral' | 'move' | 'copy') => void
+			stackMoveStep: 'select' | 'anchor' | 'place' | null
+			setStackMoveStep: (step: 'select' | 'anchor' | 'place' | null) => void
+			stackOrthoLocked: boolean
+			setStackOrthoLocked: (locked: boolean) => void
+			stackCadHud: StackCadHud | null
+			setStackCadHud: (hud: StackCadHud | null) => void
 
   // Workspace state machine
   workspaceMode: WorkspaceMode
@@ -1136,6 +1153,10 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 	})
 		const [blockEditMode, setBlockEditMode] = useState(false)
 		const [blockEditActionMode, setBlockEditActionMode] = useState<BlockEditActionMode>('neutral')
+		const [stackEditActionMode, setStackEditActionMode] = useState<'neutral' | 'move' | 'copy'>('neutral')
+		const [stackMoveStep, setStackMoveStep] = useState<'select' | 'anchor' | 'place' | null>(null)
+		const [stackOrthoLocked, setStackOrthoLocked] = useState(false)
+		const [stackCadHud, setStackCadHud] = useState<StackCadHud | null>(null)
 	const [blockPlacementWarning, setBlockPlacementWarning] = useState<string | null>(null)
 
   // Default to BUILDING_MODE for the “Site Modeling Workspace” flow.
@@ -5787,6 +5808,14 @@ export function ToolProvider({ children }: { children: ReactNode }) {
       setSelectedStackIds,
       toggleStackSelection,
       getSelectedStacks,
+      stackEditActionMode,
+      setStackEditActionMode,
+      stackMoveStep,
+      setStackMoveStep,
+      stackOrthoLocked,
+      setStackOrthoLocked,
+      stackCadHud,
+      setStackCadHud,
 	      drawingPackage,
 	      setDrawingPackage,
       drawingState,

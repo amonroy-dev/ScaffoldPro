@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { ThreeEvent } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { WORKSPACE_LAYERS } from '../../contexts/ToolContext'
 import { inchesToFeet } from './units'
 
@@ -19,6 +21,7 @@ const SELECTED_OVERLAY_COLOR = '#a855f7' // Purple
 // drawn via `.count` in our layout effects.
 const STANDARD_POOL = 500
 const ROSETTE_POOL = 2000
+const FEET_PER_METER = 3.280839895013123
 
 export type RinglockStandardInstance = {
   /** Unique ID for this standard *segment* instance (used for picking/selection cycling). */
@@ -71,17 +74,23 @@ export function RinglockStandards({
   layer = WORKSPACE_LAYERS.SCAFFOLD,
   visual = {},
   selectedId,
+  selectedIds,
   onSelect,
 	clippingPlanes,
+	ghostColor,
 }: {
   standards: RinglockStandardInstance[]
   layer?: number
   visual?: RinglockStandardVisualSpec
   /** Currently selected standard ID (for visual feedback) */
   selectedId?: string | null
+  /** Additional selected standard IDs, either segment ids or owning stack ids */
+  selectedIds?: string[] | null
   /** Callback when a standard is clicked */
   onSelect?: (standard: RinglockStandardInstance, e: ThreeEvent<PointerEvent>) => void
 	clippingPlanes?: THREE.Plane[]
+  /** When set, renders as a semi-transparent ghost preview tinted with this color */
+  ghostColor?: string
 }) {
   const v = { ...DEFAULT_VISUAL, ...visual }
 	const clipShadows = Boolean(clippingPlanes?.length)
@@ -89,13 +98,14 @@ export function RinglockStandards({
   const tubeRef = useRef<THREE.InstancedMesh>(null)
 	const tubePickRef = useRef<THREE.InstancedMesh>(null)
   const rosetteRef = useRef<THREE.InstancedMesh>(null)
+  const rosetteAsset = useGLTF('/Rosette.glb')
 
   const tubeRadiusFt = inchesToFeet(v.tubeOuterDiameterIn) / 2
 		// Selection tolerance: make the click target larger than the visual tube.
 		// In plan/top view the tube cap is extremely hard to hit otherwise.
 		// Keep this reasonably sized so ledgers/bases remain selectable; selection cycling
 		// can still be used when multiple items overlap.
-		const tubePickRadiusFt = Math.max(tubeRadiusFt, inchesToFeet(8) / 2)
+		const tubePickRadiusFt = Math.max(tubeRadiusFt, inchesToFeet(10) / 2)
   const rosetteRadiusFt = inchesToFeet(v.rosetteDiameterIn) / 2
   const rosetteThicknessFt = inchesToFeet(v.rosetteThicknessIn)
   const firstRosetteOffsetFt = inchesToFeet(v.firstRosetteOffsetIn)
@@ -126,16 +136,48 @@ export function RinglockStandards({
 	}, [tubePickRadiusFt, v.tubeRadialSegments])
 
   const rosetteGeometry = useMemo(() => {
-    // A flat disk (cylinder) rotated so thickness is along Z.
-    return new THREE.CylinderGeometry(
-      rosetteRadiusFt,
-      rosetteRadiusFt,
-      rosetteThicknessFt,
-      v.rosetteRadialSegments,
-      1,
-      false
-    ).rotateX(Math.PI / 2)
-  }, [rosetteRadiusFt, rosetteThicknessFt, v.rosetteRadialSegments])
+    const geoms: THREE.BufferGeometry[] = []
+    rosetteAsset.scene.updateMatrixWorld(true)
+    rosetteAsset.scene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh) || !object.geometry) return
+      const geometry = object.geometry.clone()
+      geometry.applyMatrix4(object.matrixWorld)
+      geoms.push(geometry)
+    })
+
+    const merged = mergeGeometries(geoms, false) ?? new THREE.BufferGeometry()
+    for (const geom of geoms) geom.dispose()
+
+    const positionAttr = merged.getAttribute('position')
+    if (!positionAttr) return merged
+
+    merged.applyMatrix4(new THREE.Matrix4().makeScale(FEET_PER_METER, FEET_PER_METER, FEET_PER_METER))
+    merged.computeVertexNormals()
+
+    const initialBounds = new THREE.Box3().setFromBufferAttribute(positionAttr as THREE.BufferAttribute)
+    const initialSize = initialBounds.getSize(new THREE.Vector3())
+    const radialSpanFt = Math.max(initialSize.x, initialSize.y)
+    const targetDiameterFt = rosetteRadiusFt * 2
+    if (radialSpanFt > 1e-6) {
+      const scale = targetDiameterFt / radialSpanFt
+      merged.applyMatrix4(new THREE.Matrix4().makeScale(scale, scale, scale))
+      merged.computeVertexNormals()
+    }
+
+    const bounds = new THREE.Box3().setFromBufferAttribute(merged.getAttribute('position') as THREE.BufferAttribute)
+    const center = bounds.getCenter(new THREE.Vector3())
+    const thicknessFt = bounds.max.z - bounds.min.z
+    merged.applyMatrix4(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z))
+
+    // If the imported model is noticeably thicker/thinner than expected, normalize it
+    // along Z without disturbing its fitted outer diameter.
+    if (thicknessFt > 1e-6 && Math.abs(thicknessFt - rosetteThicknessFt) > 1e-4) {
+      merged.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, rosetteThicknessFt / thicknessFt))
+      merged.computeVertexNormals()
+    }
+
+    return merged
+  }, [rosetteAsset.scene, rosetteRadiusFt, rosetteThicknessFt])
 
   // Ensure we release GPU buffers if this component unmounts/remounts.
   useEffect(() => {
@@ -228,16 +270,14 @@ export function RinglockStandards({
 	// - a specific segment: selectedId === "<stackId>@<segmentIndex>"
 	// - a whole stack (legacy / multi-select helpers): selectedId === "<stackId>"
 	const selectedStandards = useMemo(() => {
-		if (!selectedId) return [] as RinglockStandardInstance[]
-		const payload = String(selectedId)
-		const at = payload.indexOf('@')
-		if (at < 0) {
-			// Stack-level selection: highlight all segments in the stack.
-			return standards.filter(s => s.stackId === payload)
+		const payloads = new Set<string>()
+		if (selectedId) payloads.add(String(selectedId))
+		for (const id of selectedIds ?? []) {
+			if (id) payloads.add(String(id))
 		}
-		// Segment-level selection: highlight the one matching segment id.
-		return standards.filter(s => s.id === payload)
-	}, [selectedId, standards])
+		if (payloads.size === 0) return [] as RinglockStandardInstance[]
+		return standards.filter(s => payloads.has(s.id) || payloads.has(s.stackId))
+	}, [selectedId, selectedIds, standards])
 
 	// Select on pointer-down (more reliable than onClick when orbit controls are active)
 	const handleTubePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -267,43 +307,49 @@ export function RinglockStandards({
 
   return (
     <group>
-			{/* Invisible pick proxy to make standards easier to select */}
-			<instancedMesh
-				ref={tubePickRef}
-				args={[undefined, undefined, STANDARD_POOL]}
-				frustumCulled={false}
-				onPointerDown={onSelect ? handleTubePointerDown : undefined}
-			>
-				<primitive object={tubePickGeometry} attach="geometry" />
-				<meshBasicMaterial transparent opacity={0} depthWrite={false} />
-			</instancedMesh>
+			{/* Invisible pick proxy — skipped in ghost mode */}
+			{!ghostColor && (
+				<instancedMesh
+					ref={tubePickRef}
+					args={[undefined, undefined, STANDARD_POOL]}
+					frustumCulled={false}
+					onPointerDown={onSelect ? handleTubePointerDown : undefined}
+				>
+					<primitive object={tubePickGeometry} attach="geometry" />
+					<meshBasicMaterial transparent opacity={0} depthWrite={false} />
+				</instancedMesh>
+			)}
 
       <instancedMesh
         ref={tubeRef}
         args={[undefined, undefined, STANDARD_POOL]}
         frustumCulled={false}
-        castShadow
-        receiveShadow
+        castShadow={!ghostColor}
+        receiveShadow={!ghostColor}
       >
         <primitive object={tubeGeometry} attach="geometry" />
-        {/* Galvanized steel */}
-	        <meshStandardMaterial color={TUBE_COLOR} metalness={0.32} roughness={0.28} clippingPlanes={clippingPlanes} clipShadows={clipShadows} />
+        {ghostColor
+          ? <meshStandardMaterial color={ghostColor} emissive={ghostColor} emissiveIntensity={0.3} transparent opacity={0.5} depthWrite={false} />
+          : <meshStandardMaterial color={TUBE_COLOR} metalness={0.32} roughness={0.28} clippingPlanes={clippingPlanes} clipShadows={clipShadows} />
+        }
       </instancedMesh>
 
       <instancedMesh
         ref={rosetteRef}
         args={[undefined, undefined, ROSETTE_POOL]}
         frustumCulled={false}
-        castShadow
-				onPointerDown={onSelect ? handleRosettePointerDown : undefined}
+        castShadow={!ghostColor}
+				onPointerDown={(!ghostColor && onSelect) ? handleRosettePointerDown : undefined}
       >
         <primitive object={rosetteGeometry} attach="geometry" />
-        {/* Darker hardware */}
-	        <meshStandardMaterial color={ROSETTE_COLOR} metalness={0.22} roughness={0.55} clippingPlanes={clippingPlanes} clipShadows={clipShadows} />
+        {ghostColor
+          ? <meshStandardMaterial color={ghostColor} emissive={ghostColor} emissiveIntensity={0.25} transparent opacity={0.6} depthWrite={false} />
+          : <meshStandardMaterial color={ROSETTE_COLOR} metalness={0.22} roughness={0.55} clippingPlanes={clippingPlanes} clipShadows={clipShadows} />
+        }
       </instancedMesh>
 
-			{/* Selected overlay (keeps original colors intact) */}
-			{selectedStandards.map((s, idx) => (
+			{/* Selected overlay (skipped in ghost mode) */}
+			{!ghostColor && selectedStandards.map((s, idx) => (
 				<mesh
 					key={`selected-${s.id}-${idx}`}
 					raycast={() => null}

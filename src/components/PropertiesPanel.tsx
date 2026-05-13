@@ -764,6 +764,10 @@ export function PropertiesPanel() {
     updateScaffoldStack,
     updateManualLiveLoadPlacement,
 		requestAutoScaffoldAroundBuilding,
+    stackEditActionMode,
+    setStackEditActionMode,
+    stackMoveStep,
+    stackOrthoLocked,
   } = useTool()
 
 	const selectedBlock = useMemo(() => {
@@ -4631,9 +4635,54 @@ export function PropertiesPanel() {
 						</>
 					)}
 
+					{workspaceMode === 'SCAFFOLD_MODE' && activeTool === 'select' && !isBlockToolActive && (
+						<>
+							<button
+								className={`properties-icon-btn ${stackEditActionMode === 'move' ? 'active' : ''}`}
+								title="Move standards — drag to select, then click reference point and destination"
+								aria-pressed={stackEditActionMode === 'move'}
+								onClick={() => setStackEditActionMode(stackEditActionMode === 'move' ? 'neutral' : 'move')}
+								type="button"
+							>
+								<Move size={16} />
+							</button>
+							<button
+								className={`properties-icon-btn ${stackEditActionMode === 'copy' ? 'active' : ''}`}
+								title="Copy standards — drag to select, then click reference point and destination"
+								aria-pressed={stackEditActionMode === 'copy'}
+								onClick={() => setStackEditActionMode(stackEditActionMode === 'copy' ? 'neutral' : 'copy')}
+								type="button"
+							>
+								<Copy size={16} />
+							</button>
+						</>
+					)}
 
 				</div>
       </div>
+
+			{stackEditActionMode !== 'neutral' && (
+				<div className="scaffold-move-status">
+					<span className="scaffold-move-status-mode">{stackEditActionMode === 'move' ? 'Move' : 'Copy'}</span>
+					<span className="scaffold-move-status-hint">
+						{stackMoveStep === 'select' || !stackMoveStep
+							? 'Drag to select standards'
+							: stackMoveStep === 'anchor'
+							? 'Click a reference point'
+							: stackOrthoLocked
+							? 'Click destination · ORTHO ON (F8 off)'
+							: 'Click destination · F8 to lock axis'}
+					</span>
+					<button
+						className="scaffold-move-status-cancel"
+						onClick={() => setStackEditActionMode('neutral')}
+						title="Cancel"
+						type="button"
+					>
+						<X size={12} />
+					</button>
+				</div>
+			)}
 
 				<>
 					{isBlockToolActive && (

@@ -1,5 +1,5 @@
 import { Html } from '@react-three/drei'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import type { CatalogPart } from '../../catalog/catalogSchema'
@@ -11,7 +11,7 @@ import { RinglockPlanks, RINGLOCK_PLANK_PROFILE_DEPTH_IN, RINGLOCK_PLANK_WIDTH_I
 import { RinglockLiveLoads } from './RinglockLiveLoads'
 import { useScaffoldBaseSettings } from '../../contexts/ScaffoldBaseSettings'
 import { useSettings } from '../../contexts/SettingsContext'
-import { useTool, type LiveLoadDeckTarget } from '../../contexts/ToolContext'
+import { useTool, type LiveLoadDeckTarget, type StackCadHud } from '../../contexts/ToolContext'
 import { useCatalogSelection } from '../../contexts/CatalogContext'
 import { UNIVERSAL_RINGLOCK_STANDARDS, type UniversalRinglockStandardId } from './ringlockCatalog'
 import { buildBestFitPlankLayout, resolveClosestCatalogPlankPartNumber } from './plankLayout'
@@ -35,6 +35,76 @@ import { resolveScaffoldBuildingGeometry, type ResolvedBuildingBoxObstacle } fro
 
 const LEDGER_TUBE_OD_IN = 1.9
 const PLANK_MOUTHPIECE_TOTAL_IN = 6
+
+/** Applies direction + distance constraints for the move/copy 'place' step. */
+function applyPlaceConstraints(
+	rawDx: number, rawDy: number,
+	orthoLocked: boolean,
+	lockedAngleDeg: number | null,
+	distanceInput: string,
+	snapStep: number,
+): { dx: number; dy: number; distance: number; angleDeg: number } {
+	let dx = rawDx
+	let dy = rawDy
+	const typedDist = distanceInput !== '' ? parseFloat(distanceInput) : NaN
+
+	// Direction constraint
+	if (lockedAngleDeg !== null) {
+		const rawDist = Math.sqrt(dx * dx + dy * dy)
+		const rad = lockedAngleDeg * (Math.PI / 180)
+		dx = rawDist * Math.cos(rad)
+		dy = rawDist * Math.sin(rad)
+	} else if (orthoLocked) {
+		if (Math.abs(dx) >= Math.abs(dy)) { dy = 0 } else { dx = 0 }
+	}
+
+	// Distance constraint — typed value overrides grid snap
+	if (!isNaN(typedDist) && typedDist >= 0) {
+		const dir = Math.sqrt(dx * dx + dy * dy)
+		if (dir > 1e-6) {
+			dx = dx * (typedDist / dir)
+			dy = dy * (typedDist / dir)
+		} else if (lockedAngleDeg !== null) {
+			const rad = lockedAngleDeg * (Math.PI / 180)
+			dx = typedDist * Math.cos(rad)
+			dy = typedDist * Math.sin(rad)
+		}
+	} else if (snapStep > 0) {
+		dx = Math.round(dx / snapStep) * snapStep
+		dy = Math.round(dy / snapStep) * snapStep
+	}
+
+	const distance = Math.sqrt(dx * dx + dy * dy)
+	const angleDeg = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360
+	return { dx, dy, distance, angleDeg }
+}
+
+/** Thin line from start to end for CAD distance preview. */
+function DistanceLine({ start, end }: { start: { x: number; y: number }; end: { x: number; y: number } }) {
+	const lineObj = useMemo(() => {
+		const geo = new THREE.BufferGeometry()
+		const mat = new THREE.LineBasicMaterial({ color: '#a855f7' })
+		return new THREE.Line(geo, mat)
+	}, [])
+	useLayoutEffect(() => {
+		const pos = new Float32Array([start.x, start.y, 0.25, end.x, end.y, 0.25])
+		lineObj.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+		lineObj.geometry.computeBoundingSphere()
+		lineObj.geometry.attributes.position.needsUpdate = true
+	}, [lineObj, start.x, start.y, end.x, end.y])
+	useEffect(() => () => {
+		lineObj.geometry.dispose();
+		(lineObj.material as THREE.Material).dispose()
+	}, [lineObj])
+	return <primitive object={lineObj} raycast={() => null} />
+}
+
+function isTextInputFocused() {
+	const el = document.activeElement
+	if (!el) return false
+	const tag = (el as HTMLElement).tagName
+	return tag === 'INPUT' || tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable
+}
 const LEG_LOAD_LABEL_HEIGHT_FT = inchesToFeet(14)
 const LEG_LOAD_LABEL_OUTWARD_OFFSET_FT = inchesToFeet(10)
 const STACK_MATCH_XY_TOL_FT = inchesToFeet(3)
@@ -529,6 +599,20 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 			hoveredLiveLoadDeckTargets,
 			selectedLiveLoadDeckTargets,
 			setSelectedLiveLoadDeckTargets,
+    selectedStackIds,
+    getSelectedStacks,
+    updateScaffoldStack,
+    addScaffoldStack,
+    setStandardSegmentsForStack,
+    addLedgerConnection,
+    stackEditActionMode,
+    setStackEditActionMode,
+    stackMoveStep,
+    setStackMoveStep,
+    stackOrthoLocked,
+    setStackOrthoLocked,
+    stackCadHud,
+    setStackCadHud,
   } = useTool()
 		  const { categoryKey, manufacturerId, selectedManufacturer, selectedPart } = useCatalogSelection()
 
@@ -565,6 +649,173 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		}
 		return ids
 	}, [blockDragHiddenStackIds, movingBlockIdSet, scaffoldBlocks, scaffoldStacks])
+
+	// ─── Stack move/copy state ───────────────────────────────────────────────
+	type StackMarqueeState = {
+		start: { x: number; y: number }
+		current: { x: number; y: number }
+		startClientX: number
+		currentClientX: number
+		startClientY: number
+		currentClientY: number
+	}
+	const [stackMarquee, setStackMarquee] = useState<StackMarqueeState | null>(null)
+	const stackMarqueeRef = useRef<StackMarqueeState | null>(null)
+	// Clear marquee immediately when the camera view changes (e.g. ViewCube click)
+	// useLayoutEffect runs synchronously before the browser can fire the next pointermove,
+	// so the stale start point from the old projection is never used.
+	useLayoutEffect(() => {
+		stackMarqueeRef.current = null
+		setStackMarquee(null)
+	}, [viewMode])
+	const [stackMoveIds, setStackMoveIds] = useState<string[]>([])
+	const stackMoveIdsRef = useRef<string[]>([])
+	const [stackMoveAnchor, setStackMoveAnchor] = useState<{ x: number; y: number } | null>(null)
+	const stackMoveAnchorRef = useRef<{ x: number; y: number } | null>(null)
+	const [stackPreviewOffset, setStackPreviewOffset] = useState<{ dx: number; dy: number } | null>(null)
+
+	const stackOrthoLockedRef = useRef(false)
+	const stackPreviewOffsetRef = useRef<{ dx: number; dy: number } | null>(null)
+	const stackCadHudRef = useRef<StackCadHud | null>(null)
+	const lastCursorPtRef = useRef<{ x: number; y: number } | null>(null)
+	const executeStackPlacementRef = useRef<(() => void) | null>(null)
+	// Settings-based snap step (mirrors PlaceStandardTool behaviour)
+	const snapStepRef = useRef(settings.snapToGrid ? settings.gridSize : 0)
+	useEffect(() => { stackMoveAnchorRef.current = stackMoveAnchor }, [stackMoveAnchor])
+	useEffect(() => { stackMoveIdsRef.current = stackMoveIds }, [stackMoveIds])
+	useEffect(() => { stackOrthoLockedRef.current = stackOrthoLocked }, [stackOrthoLocked])
+	useEffect(() => { stackPreviewOffsetRef.current = stackPreviewOffset }, [stackPreviewOffset])
+	useEffect(() => { stackCadHudRef.current = stackCadHud }, [stackCadHud])
+	useEffect(() => { snapStepRef.current = settings.snapToGrid ? settings.gridSize : 0 }, [settings.snapToGrid, settings.gridSize])
+
+	const cancelStackMove = useCallback(() => {
+		stackMarqueeRef.current = null
+		stackMoveAnchorRef.current = null
+		stackMoveIdsRef.current = []
+		stackOrthoLockedRef.current = false
+		stackPreviewOffsetRef.current = null
+		stackCadHudRef.current = null
+		lastCursorPtRef.current = null
+		setStackMarquee(null)
+		setStackMoveAnchor(null)
+		setStackMoveIds([])
+		setStackPreviewOffset(null)
+		setStackOrthoLocked(false)
+		setStackCadHud(null)
+		setStackEditActionMode('neutral')
+		setStackMoveStep(null)
+	}, [setStackCadHud, setStackEditActionMode, setStackMoveStep, setStackOrthoLocked])
+
+	// Escape key cancels
+	useEffect(() => {
+		if (stackEditActionMode === 'neutral') return
+		const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelStackMove() }
+		window.addEventListener('keydown', onKey, true)
+		return () => window.removeEventListener('keydown', onKey, true)
+	}, [cancelStackMove, stackEditActionMode])
+
+	// When mode activates, start in 'select' step
+	useEffect(() => {
+		if (stackEditActionMode === 'neutral') {
+			setStackMoveStep(null)
+		} else {
+			setStackMoveStep('select')
+		}
+	}, [stackEditActionMode, setStackMoveStep])
+
+	// Cursor style
+	useEffect(() => {
+		const canvas = gl.domElement
+		if (stackEditActionMode === 'neutral') {
+			canvas.style.removeProperty('cursor')
+			return
+		}
+		canvas.style.cursor = stackMoveStep === 'select' ? 'crosshair' : 'cell'
+		return () => { canvas.style.removeProperty('cursor') }
+	}, [gl.domElement, stackEditActionMode, stackMoveStep])
+	// Initialise / clear CAD HUD when entering or leaving 'place' step
+	useEffect(() => {
+		if (stackMoveStep === 'place') {
+			setStackCadHud({ distance: 0, angle: 0, field: 'distance', distanceInput: '', angleInput: '', lockedAngleDeg: null })
+		} else {
+			setStackCadHud(null)
+		}
+	}, [stackMoveStep, setStackCadHud])
+
+	// Recompute preview when typed distance or locked angle changes (cursor may not be moving)
+	useEffect(() => {
+		if (stackMoveStep !== 'place') return
+		const anchor = stackMoveAnchorRef.current
+		const pt = lastCursorPtRef.current
+		if (!anchor || !pt) return
+		const hud = stackCadHudRef.current
+		const result = applyPlaceConstraints(
+			pt.x - anchor.x, pt.y - anchor.y,
+			stackOrthoLockedRef.current,
+			hud?.lockedAngleDeg ?? null,
+			hud?.distanceInput ?? '',
+			snapStepRef.current,
+		)
+		setStackPreviewOffset({ dx: result.dx, dy: result.dy })
+		const curHud = stackCadHudRef.current; if (curHud) setStackCadHud({ ...curHud, distance: result.distance, angle: result.angleDeg })
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [stackCadHud?.distanceInput, stackCadHud?.lockedAngleDeg, stackMoveStep])
+
+	// F8 toggles ortho lock; digits/Tab/Backspace/Enter drive CAD direct-distance-entry
+	useEffect(() => {
+		if (stackMoveStep !== 'place') return
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'F8') {
+				e.preventDefault()
+				setStackOrthoLocked(!stackOrthoLockedRef.current)
+				return
+			}
+			if (e.key === 'Escape') return  // handled by the cancel effect
+			if (e.ctrlKey || e.metaKey || e.altKey) return
+			if (isTextInputFocused()) return
+
+			if (e.key === 'Enter') {
+				e.preventDefault()
+				e.stopPropagation()
+				executeStackPlacementRef.current?.()
+				return
+			}
+			if (e.key === 'Tab') {
+				e.preventDefault()
+				const cur = stackCadHudRef.current
+				if (!cur) return
+				setStackCadHud({ ...cur, field: cur.field === 'distance' ? 'angle' : 'distance' })
+				return
+			}
+			if (e.key === 'Backspace') {
+				e.preventDefault()
+				const cur = stackCadHudRef.current
+				if (!cur) return
+				if (cur.field === 'distance') {
+					setStackCadHud({ ...cur, distanceInput: cur.distanceInput.slice(0, -1) })
+				} else {
+					const newAngle = cur.angleInput.slice(0, -1)
+					setStackCadHud({ ...cur, angleInput: newAngle, lockedAngleDeg: newAngle === '' ? null : cur.lockedAngleDeg })
+				}
+				return
+			}
+			if (/^[\d.]$/.test(e.key)) {
+				e.preventDefault()
+				const cur = stackCadHudRef.current
+				if (!cur) return
+				if (cur.field === 'distance') {
+					setStackCadHud({ ...cur, distanceInput: cur.distanceInput + e.key })
+				} else {
+					const newAngle = cur.angleInput + e.key
+					const parsed = parseFloat(newAngle)
+					setStackCadHud({ ...cur, angleInput: newAngle, lockedAngleDeg: isNaN(parsed) ? null : parsed })
+				}
+			}
+		}
+		window.addEventListener('keydown', onKey, true)
+		return () => window.removeEventListener('keydown', onKey, true)
+	}, [stackMoveStep, setStackCadHud, setStackOrthoLocked])
+	// ─── (pointer effects using projectClientToGround are placed after it is declared) ───
 
 	// Selection cycling state (CAD-style select-through)
 	const selectionCycleRef = useRef<{
@@ -1527,6 +1778,193 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 			? { x: point.x, y: point.y }
 			: null
 	}, [camera, gl.domElement])
+
+	// ─── Stack move/copy pointer effects (require projectClientToGround) ─────
+
+	// Marquee pointer-down — active whenever selection is enabled and no mid-operation step is in progress
+	useEffect(() => {
+		const marqueeAllowed = selectionEnabled && stackMoveStep !== 'anchor' && stackMoveStep !== 'place'
+		if (!marqueeAllowed) return
+		const canvas = gl.domElement
+		const onDown = (e: PointerEvent) => {
+			if (e.button !== 0 || cameraNavigationActive || isCameraNavigationModifierGesture(e)) return
+			const pt = projectClientToGround(e.clientX, e.clientY)
+			if (!pt) return
+			// Only record the start position — defer the visual until drag threshold is crossed in pointermove
+			stackMarqueeRef.current = { start: pt, current: pt, startClientX: e.clientX, currentClientX: e.clientX, startClientY: e.clientY, currentClientY: e.clientY }
+		}
+		canvas.addEventListener('pointerdown', onDown, false)
+		return () => canvas.removeEventListener('pointerdown', onDown, false)
+	}, [cameraNavigationActive, gl.domElement, projectClientToGround, selectionEnabled, stackMoveStep])
+
+	// Marquee pointer-move + pointer-up → finalise selection
+	useEffect(() => {
+		const marqueeAllowed = selectionEnabled && stackMoveStep !== 'anchor' && stackMoveStep !== 'place'
+		if (!marqueeAllowed) return
+		const onMove = (e: PointerEvent) => {
+			const cur = stackMarqueeRef.current
+			if (!cur) return
+			// If the button was released without triggering our pointerup (e.g. outside window), clean up
+			if (!(e.buttons & 1)) {
+				stackMarqueeRef.current = null
+				setStackMarquee(null)
+				return
+			}
+			const pt = projectClientToGround(e.clientX, e.clientY)
+			if (!pt) return
+			const next: StackMarqueeState = { ...cur, current: pt, currentClientX: e.clientX, currentClientY: e.clientY }
+			stackMarqueeRef.current = next
+			// Only show the visual marquee once the drag threshold is crossed
+			const dx = Math.abs(e.clientX - cur.startClientX)
+			const dy = Math.abs(e.clientY - cur.startClientY)
+			if (dx >= 4 || dy >= 4) {
+				setStackMarquee(next)
+			}
+		}
+		const onUp = (e: PointerEvent) => {
+			const cur = stackMarqueeRef.current
+			if (!cur) return
+			// Ignore sub-pixel drags (plain click — handled by mesh onSelect callbacks)
+			if (Math.abs(cur.currentClientX - cur.startClientX) < 4 && Math.abs(cur.currentClientY - cur.startClientY) < 4) {
+				stackMarqueeRef.current = null
+				setStackMarquee(null)
+				return
+			}
+			const isCrossing = cur.currentClientX < cur.startClientX
+			const rect = normalizeMarqueeRect(cur.start, cur.current)
+			const ids = scaffoldStacks
+				.filter(s => {
+					const p = { x: s.gridPosition.x, y: s.gridPosition.y }
+					return isCrossing
+						? doesCrossingIntersectRect(rect, { xMin: p.x - 0.1, xMax: p.x + 0.1, yMin: p.y - 0.1, yMax: p.y + 0.1 })
+						: doesWindowContainRect(rect, { xMin: p.x - 0.1, xMax: p.x + 0.1, yMin: p.y - 0.1, yMax: p.y + 0.1 })
+				})
+				.map(s => s.id)
+			const prevIds = stackEditActionMode !== 'neutral' ? stackMoveIdsRef.current : selectedStackIds
+			const nextIds = e.shiftKey ? Array.from(new Set([...prevIds, ...ids])) : ids
+			stackMarqueeRef.current = null
+			setStackMarquee(null)
+			if (nextIds.length === 0) return
+			setSelectedStackIds(nextIds)
+			// In move/copy mode, advance to the anchor step
+			if (stackEditActionMode !== 'neutral') {
+				stackMoveIdsRef.current = nextIds
+				setStackMoveIds(nextIds)
+				setStackMoveStep('anchor')
+			}
+		}
+		window.addEventListener('pointermove', onMove)
+		window.addEventListener('pointerup', onUp)
+		return () => {
+			window.removeEventListener('pointermove', onMove)
+			window.removeEventListener('pointerup', onUp)
+		}
+	}, [cameraNavigationActive, gl.domElement, projectClientToGround, scaffoldStacks, selectedStackIds, selectionEnabled, setSelectedStackIds, setStackMoveStep, stackEditActionMode, stackMoveStep])
+
+	// Anchor click
+	useEffect(() => {
+		if (stackEditActionMode === 'neutral' || stackMoveStep !== 'anchor') return
+		const canvas = gl.domElement
+		const onDown = (e: PointerEvent) => {
+			if (e.button !== 0 || cameraNavigationActive || isCameraNavigationModifierGesture(e)) return
+			const pt = projectClientToGround(e.clientX, e.clientY)
+			if (!pt) return
+			e.stopPropagation()
+			e.preventDefault()
+			stackMoveAnchorRef.current = { x: pt.x, y: pt.y }
+			setStackMoveAnchor({ x: pt.x, y: pt.y })
+			setStackPreviewOffset({ dx: 0, dy: 0 })
+			setStackMoveStep('place')
+		}
+		canvas.addEventListener('pointerdown', onDown, true)
+		return () => canvas.removeEventListener('pointerdown', onDown, true)
+	}, [cameraNavigationActive, gl.domElement, projectClientToGround, setStackMoveStep, stackEditActionMode, stackMoveStep])
+
+	// Ghost preview tracking (pointer-move during 'place')
+	useEffect(() => {
+		if (stackEditActionMode === 'neutral' || stackMoveStep !== 'place') return
+		const onMove = (e: PointerEvent) => {
+			const anchor = stackMoveAnchorRef.current
+			if (!anchor) return
+			const pt = projectClientToGround(e.clientX, e.clientY)
+			if (!pt) return
+			lastCursorPtRef.current = pt
+			const hud = stackCadHudRef.current
+			const result = applyPlaceConstraints(
+				pt.x - anchor.x, pt.y - anchor.y,
+				stackOrthoLockedRef.current,
+				hud?.lockedAngleDeg ?? null,
+				hud?.distanceInput ?? '',
+				snapStepRef.current,
+			)
+			setStackPreviewOffset({ dx: result.dx, dy: result.dy })
+			const curHud = stackCadHudRef.current; if (curHud) setStackCadHud({ ...curHud, distance: result.distance, angle: result.angleDeg })
+		}
+		window.addEventListener('pointermove', onMove)
+		return () => window.removeEventListener('pointermove', onMove)
+	}, [projectClientToGround, setStackCadHud, stackEditActionMode, stackMoveStep])
+
+	// Destination click → execute move or copy
+	// Also wires executeStackPlacementRef so the Enter key can trigger the same logic.
+	useEffect(() => {
+		if (stackEditActionMode === 'neutral' || stackMoveStep !== 'place') return
+
+		const doPlacement = () => {
+			const offset = stackPreviewOffsetRef.current
+			if (!offset) return
+			const { dx, dy } = offset
+			const ids = stackMoveIdsRef.current
+			const stacks = scaffoldStacks.filter(s => ids.includes(s.id))
+			if (stackEditActionMode === 'move') {
+				for (const s of stacks) {
+					updateScaffoldStack(s.id, {
+						gridPosition: new THREE.Vector3(s.gridPosition.x + dx, s.gridPosition.y + dy, s.gridPosition.z),
+					})
+				}
+			} else {
+				const idMap = new Map<string, string>()
+				const idSet = new Set(ids)
+				for (const s of stacks) {
+					const newStack = addScaffoldStack(
+						new THREE.Vector3(s.gridPosition.x + dx, s.gridPosition.y + dy, s.gridPosition.z),
+						s.standardSegments[0]?.partNumber ?? 'US66',
+						s.jackExtensionIn,
+						{ showWoodSill: s.showWoodSill, showBaseCollar: s.showBaseCollar, baseSupport: s.baseSupport },
+					)
+					if (s.standardSegments.length > 1) {
+						setStandardSegmentsForStack(newStack.id, s.standardSegments.map(seg => seg.partNumber))
+					}
+					idMap.set(s.id, newStack.id)
+				}
+				for (const lc of ledgerConnections) {
+					if (idSet.has(lc.startNode.stackId) && idSet.has(lc.endNode.stackId)) {
+						addLedgerConnection(
+							{ stackId: idMap.get(lc.startNode.stackId)!, liftIndex: lc.startNode.liftIndex },
+							{ stackId: idMap.get(lc.endNode.stackId)!, liftIndex: lc.endNode.liftIndex },
+							lc.ledgerPartNumber,
+						)
+					}
+				}
+			}
+			cancelStackMove()
+		}
+
+		executeStackPlacementRef.current = doPlacement
+
+		const canvas = gl.domElement
+		const onDown = (e: PointerEvent) => {
+			if (e.button !== 0 || cameraNavigationActive || isCameraNavigationModifierGesture(e)) return
+			e.stopPropagation()
+			e.preventDefault()
+			doPlacement()
+		}
+		canvas.addEventListener('pointerdown', onDown, true)
+		return () => {
+			canvas.removeEventListener('pointerdown', onDown, true)
+			executeStackPlacementRef.current = null
+		}
+	}, [addLedgerConnection, addScaffoldStack, cancelStackMove, cameraNavigationActive, gl.domElement, ledgerConnections, scaffoldStacks, setStandardSegmentsForStack, stackEditActionMode, stackMoveStep, updateScaffoldStack])
+
 	const selectableLiveLoadDeckBays = useMemo(
 		() => {
 			if (!isLiveLoadTopView) return blockLiveLoadDeckBays
@@ -2034,6 +2472,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 							<RinglockStandards
 								standards={standardInstances}
 								selectedId={selectedObjectId?.startsWith('standard-') ? selectedObjectId.slice('standard-'.length) : null}
+								selectedIds={stackMoveIds.length > 0 ? stackMoveIds : undefined}
 								clippingPlanes={clippingPlanes}
 								onSelect={selectionEnabled ? handleStandardSelect : (isPlacingStandard ? handleStandardStackSelect : undefined)}
 							/>
@@ -2192,6 +2631,74 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 						</>
 					</>
 				)}
+
+				{/* ── Stack move/copy visuals ─────────────────────────────────── */}
+				{stackMarquee && (
+					<LiveLoadMarquee
+						start={stackMarquee.start}
+						current={stackMarquee.current}
+						crossing={stackMarquee.currentClientX < stackMarquee.startClientX}
+						z={0.05}
+					/>
+				)}
+
+				{/* Anchor marker */}
+				{stackMoveAnchor && (
+					<mesh position={[stackMoveAnchor.x, stackMoveAnchor.y, 0.15]} raycast={() => null}>
+						<sphereGeometry args={[0.18, 16, 16]} />
+						<meshStandardMaterial
+							color="#a855f7"
+							emissive="#a855f7"
+							emissiveIntensity={0.6}
+						/>
+					</mesh>
+				)}
+
+				{/* Distance line + midpoint label during 'place' step */}
+				{stackMoveStep === 'place' && stackMoveAnchor && stackPreviewOffset && stackCadHud && (
+					<>
+						<DistanceLine
+							start={stackMoveAnchor}
+							end={{ x: stackMoveAnchor.x + stackPreviewOffset.dx, y: stackMoveAnchor.y + stackPreviewOffset.dy }}
+						/>
+						<Html
+							position={[
+								stackMoveAnchor.x + stackPreviewOffset.dx * 0.5,
+								stackMoveAnchor.y + stackPreviewOffset.dy * 0.5,
+								0.4,
+							]}
+							center
+							style={{ pointerEvents: 'none', userSelect: 'none' }}
+						>
+							<div className="cad-dimension-label">
+								{stackCadHud.distance.toFixed(2)} ft &nbsp; {stackCadHud.angle.toFixed(0)}°
+							</div>
+						</Html>
+					</>
+				)}
+
+				{/* Ghost standard preview at destination — real geometry, tinted */}
+				{stackMoveStep === 'place' && stackPreviewOffset && stackMoveIds.length > 0 && (() => {
+					const ghostColor = stackEditActionMode === 'copy' ? '#22c55e' : '#f97316'
+					const stackMoveIdSet = new Set(stackMoveIds)
+					const ghostInstances = standardInstances
+						.filter(si => stackMoveIdSet.has(si.stackId))
+						.map(si => ({
+							...si,
+							id: `ghost-${si.id}`,
+							basePosition: new THREE.Vector3(
+								si.basePosition.x + stackPreviewOffset.dx,
+								si.basePosition.y + stackPreviewOffset.dy,
+								si.basePosition.z,
+							),
+						}))
+					return (
+						<RinglockStandards
+							standards={ghostInstances}
+							ghostColor={ghostColor}
+						/>
+					)
+				})()}
 	    </group>
   )
 }

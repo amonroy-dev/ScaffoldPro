@@ -1,0 +1,85 @@
+.stack-move-hud {
+	position: fixed;
+	bottom: 72px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 300;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 7px 14px;
+	background: rgba(18, 18, 24, 0.88);
+	border: 1px solid rgba(168, 85, 247, 0.4);
+	border-radius: 8px;
+	backdrop-filter: blur(8px);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+	pointer-events: none;
+	font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+	white-space: nowrap;
+}
+
+.hud-field {
+	display: flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 3px 8px;
+	border-radius: 5px;
+	border: 1px solid transparent;
+	transition: border-color 0.1s, background 0.1s;
+}
+
+.hud-field--active {
+	border-color: rgba(168, 85, 247, 0.7);
+	background: rgba(168, 85, 247, 0.12);
+}
+
+.hud-field--locked .hud-value {
+	color: #a78bfa;
+}
+
+.hud-label {
+	font-size: 9px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: rgba(255, 255, 255, 0.38);
+}
+
+.hud-value {
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.92);
+	letter-spacing: 0.02em;
+}
+
+.hud-cursor {
+	display: inline-block;
+	width: 1px;
+	height: 14px;
+	background: #a855f7;
+	margin-left: 1px;
+	vertical-align: middle;
+	animation: hud-blink 0.9s step-end infinite;
+}
+
+@keyframes hud-blink {
+	0%, 100% { opacity: 1; }
+	50%       { opacity: 0; }
+}
+
+.hud-lock-icon {
+	font-size: 10px;
+	margin-left: 3px;
+}
+
+.hud-sep {
+	color: rgba(255, 255, 255, 0.22);
+	font-size: 14px;
+}
+
+.hud-hint {
+	font-size: 10px;
+	color: rgba(255, 255, 255, 0.28);
+	margin-left: 6px;
+	letter-spacing: 0.03em;
+}

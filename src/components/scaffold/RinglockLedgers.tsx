@@ -49,6 +49,7 @@ export function RinglockLedgers({
   layer = WORKSPACE_LAYERS.SCAFFOLD,
   visual = {},
   selectedId,
+  selectedIds,
   onSelect,
   onHover,
   onHoverOut,
@@ -60,6 +61,8 @@ export function RinglockLedgers({
   visual?: RinglockLedgerVisualSpec
   /** Currently selected ledger ID (for visual feedback) */
   selectedId?: string | null
+  /** Additional selected ledger IDs */
+  selectedIds?: string[] | null
   /** Callback when a ledger is clicked */
   onSelect?: (ledger: RinglockLedgerInstance, e?: ThreeEvent<PointerEvent>) => void
   /** Callback while hovering a ledger pick proxy */
@@ -409,8 +412,16 @@ export function RinglockLedgers({
     }
   }, [mouthpieceSeatDepthFt, plainLedgers, trusses])
 
-  // Find selected index for visual feedback
-  const selectedIndex = selectedId ? ledgers.findIndex(l => l.id === selectedId) : -1
+  // Find selected ledgers for visual feedback
+  const selectedLedgers = useMemo(() => {
+    const ids = new Set<string>()
+    if (selectedId) ids.add(selectedId)
+    for (const id of selectedIds ?? []) {
+      if (id) ids.add(id)
+    }
+    if (ids.size === 0) return [] as RinglockLedgerInstance[]
+    return ledgers.filter(ledger => ids.has(ledger.id))
+  }, [ledgers, selectedId, selectedIds])
 
   // Select on pointer-down (more reliable than onClick with orbit controls)
   const handleLedgerPointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -534,8 +545,7 @@ export function RinglockLedgers({
       )}
 
       {/* Selected overlay */}
-      {showVisuals && selectedIndex >= 0 && selectedIndex < ledgers.length && (() => {
-        const l = ledgers[selectedIndex]
+      {showVisuals && selectedLedgers.map((l) => {
         const mid = new THREE.Vector3().addVectors(l.start, l.end).multiplyScalar(0.5)
         const dir = new THREE.Vector3().subVectors(l.end, l.start)
         const length = dir.length()
@@ -543,10 +553,11 @@ export function RinglockLedgers({
         dir.divideScalar(length)
         const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
 	        const isTruss = (l.partNumber ?? '').startsWith('UHT')
-	        const overlayGeometry = isTruss ? trussGeometry : tubeGeometry
+        const overlayGeometry = isTruss ? trussGeometry : tubeGeometry
         const overlayLength = isTruss ? length : Math.max(0, length - mouthpieceSeatDepthFt * 2)
         return (
           <mesh
+            key={`selected-ledger-${l.id}`}
             raycast={() => null}
             renderOrder={10}
             position={[mid.x, mid.y, mid.z]}
@@ -568,7 +579,7 @@ export function RinglockLedgers({
             />
           </mesh>
         )
-      })()}
+      })}
     </group>
   )
 }

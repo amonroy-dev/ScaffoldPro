@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Home } from 'lucide-react'
 import { Scene } from './components/Scene'
 import { DockedInspector } from './components/DockedInspector'
+import { StackMoveHud } from './components/StackMoveHud'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Toolbar } from './components/Toolbar'
 import { ProjectPersistence } from './components/ProjectPersistence'
@@ -67,6 +68,8 @@ export function AppContent() {
 		removeBuildingEntity,
 		removeObject,
 		removeScaffoldStack,
+		selectedStackIds,
+		setSelectedStackIds,
 		removeLedgerConnection,
 		removeManualLiveLoadPlacement,
 		selectedBlockIds,
@@ -125,6 +128,15 @@ export function AppContent() {
 				return
 			}
 
+			// Multi-stack deletion (marquee-selected standards)
+			if (selectedStackIds.length > 1) {
+				for (const id of [...selectedStackIds]) {
+					removeScaffoldStack(id)
+				}
+				setSelectedStackIds([])
+				return
+			}
+
 			if (!selectedObjectId) return // nothing selected
 
 				// Parse the selection ID to determine what to delete.
@@ -169,7 +181,7 @@ export function AppContent() {
 
 		window.addEventListener('keydown', onKeyDown)
 		return () => window.removeEventListener('keydown', onKeyDown)
-		}, [selectedObjectId, selectedBlockIds, activeTool, blockToolSettings.mode, buildingEntities, categoryKey, removeBuildingEntity, removeScaffoldStack, removeLedgerConnection, removeManualLiveLoadPlacement, removeObject, removeScaffoldBlock, suppressDiagonalMemberInBlock, setSelectedObjectId])
+		}, [selectedObjectId, selectedBlockIds, selectedStackIds, activeTool, blockToolSettings.mode, buildingEntities, categoryKey, removeBuildingEntity, removeScaffoldStack, removeLedgerConnection, removeManualLiveLoadPlacement, removeObject, removeScaffoldBlock, suppressDiagonalMemberInBlock, setSelectedObjectId, setSelectedStackIds])
 
 	// Keyboard shortcuts: Undo / Redo
 	useEffect(() => {
@@ -341,6 +353,9 @@ export function AppContent() {
 
 			      {/* Docked inspector (tabs + collapsible rail) */}
 			      <DockedInspector />
+
+			{/* CAD distance/angle HUD for move/copy 'place' step */}
+			<StackMoveHud />
 
       {/* Settings UI overlay */}
 	      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
