@@ -99,78 +99,155 @@ function DistanceLine({ start, end }: { start: { x: number; y: number }; end: { 
 	return <primitive object={lineObj} raycast={() => null} />
 }
 
-const DIM_Z = 0.12          // just above base plates
-const DIM_OFFSET = 0.45     // perpendicular offset for dim line (ft)
-const DIM_TICK_HALF = 0.18  // half-length of the slash tick (ft)
+const DIM_Z = 0.12             // just above base plates
+const DIM_INITIAL_OFFSET = 0.45 // default perpendicular offset for new dims (ft)
+const DIM_TICK_HALF = 0.18     // half-length of the slash tick (ft)
 
-/** Permanent engineering-drawing style dimension annotation. */
-function PermanentDimension({ start, end, distance, onRemove }: {
+/** Permanent engineering-drawing style dimension annotation with drag-to-reposition. */
+function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetChange }: {
 	start: { x: number; y: number }
 	end: { x: number; y: number }
 	distance: number
+	offset: number              // signed perpendicular offset; drag changes this
 	onRemove: () => void
+	onOffsetChange: (newOffset: number) => void
 }) {
+	const { gl, camera } = useThree()
+	const { settings } = useSettings()
+	const [hovered, setHovered] = useState(false)
+	const [dragging, setDragging] = useState(false)
+	const dragRef = useRef<{ initialOffset: number; cursorOffsetAtStart: number } | null>(null)
+
+	const snapStep = settings.snapToGrid ? settings.gridSize : 0
+
+	// Stable direction vectors (start/end never change after creation)
+	const dx = end.x - start.x, dy = end.y - start.y
+	const len = Math.sqrt(dx * dx + dy * dy)
+	const ux = len > 0.001 ? dx / len : 1
+	const uy = len > 0.001 ? dy / len : 0
+	const px = -uy, py = ux   // unit perpendicular (left of direction)
+
+	// Rebuild geometry whenever offset changes (or on mount)
 	const linesObj = useMemo(() => {
-		const dx = end.x - start.x, dy = end.y - start.y
-		const len = Math.sqrt(dx * dx + dy * dy)
 		if (len < 0.01) return null
-		const ux = dx / len, uy = dy / len   // unit along dim direction
-		const px = -uy, py = ux              // unit perpendicular (left of direction)
+		const Ax = start.x + px * offset, Ay = start.y + py * offset
+		const Bx = end.x   + px * offset, By = end.y   + py * offset
 
-		// Offset dim line endpoints
-		const Ax = start.x + px * DIM_OFFSET, Ay = start.y + py * DIM_OFFSET
-		const Bx = end.x   + px * DIM_OFFSET, By = end.y   + py * DIM_OFFSET
-
-		// Slash tick direction: 45° between along and perp directions
 		const rtx = ux + px, rty = uy + py
-		const tLen = Math.sqrt(rtx * rtx + rty * rty)
+		const tLen = Math.sqrt(rtx * rtx + rty * rty) || 1
 		const tx = (rtx / tLen) * DIM_TICK_HALF
 		const ty = (rty / tLen) * DIM_TICK_HALF
 
-		const overshoot = 0.07  // extension lines overshoot the dim line slightly
+		const over = 0.07
 		const verts = new Float32Array([
-			// Main dimension line
 			Ax, Ay, DIM_Z,  Bx, By, DIM_Z,
-			// Extension line at start
-			start.x, start.y, DIM_Z,  Ax + px * overshoot, Ay + py * overshoot, DIM_Z,
-			// Extension line at end
-			end.x, end.y, DIM_Z,  Bx + px * overshoot, By + py * overshoot, DIM_Z,
-			// Slash tick at A
+			start.x, start.y, DIM_Z,  Ax + px * over, Ay + py * over, DIM_Z,
+			end.x,   end.y,   DIM_Z,  Bx + px * over, By + py * over, DIM_Z,
 			Ax - tx, Ay - ty, DIM_Z,  Ax + tx, Ay + ty, DIM_Z,
-			// Slash tick at B
 			Bx - tx, By - ty, DIM_Z,  Bx + tx, By + ty, DIM_Z,
 		])
 		const geo = new THREE.BufferGeometry()
 		geo.setAttribute('position', new THREE.BufferAttribute(verts, 3))
 		const mat = new THREE.LineBasicMaterial({ color: '#3b82f6' })
 		return new THREE.LineSegments(geo, mat)
-	}, [start.x, start.y, end.x, end.y])
+	}, [start.x, start.y, end.x, end.y, offset, px, py, ux, uy, len])
+
+	// Hover / drag colour feedback
+	useEffect(() => {
+		if (!linesObj) return
+		;(linesObj.material as THREE.LineBasicMaterial).color.set(
+			dragging ? '#93c5fd' : hovered ? '#60a5fa' : '#3b82f6'
+		)
+	}, [hovered, dragging, linesObj])
 
 	useEffect(() => () => {
 		linesObj?.geometry.dispose()
 		;(linesObj?.material as THREE.Material | undefined)?.dispose()
 	}, [linesObj])
 
+	// Project screen → ground plane (same logic as projectClientToGround in ScaffoldWorkspace)
+	const projectToGround = useCallback((clientX: number, clientY: number) => {
+		const rect = gl.domElement.getBoundingClientRect()
+		const ptr = new THREE.Vector2(
+			((clientX - rect.left) / rect.width)  * 2 - 1,
+			-((clientY - rect.top)  / rect.height) * 2 + 1,
+		)
+		const ray = new THREE.Raycaster()
+		ray.setFromCamera(ptr, camera)
+		const pt = new THREE.Vector3()
+		return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), pt)
+			? { x: pt.x, y: pt.y } : null
+	}, [gl.domElement, camera])
+
+	// Begin drag on hit-mesh pointerdown
+	const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+		e.stopPropagation()
+		e.nativeEvent.stopPropagation()
+		e.nativeEvent.preventDefault()
+		const pt = projectToGround(e.nativeEvent.clientX, e.nativeEvent.clientY)
+		if (!pt) return
+		// Record signed perp offset of cursor relative to baseline at drag start
+		const cursorOff = (pt.x - start.x) * px + (pt.y - start.y) * py
+		dragRef.current = { initialOffset: offset, cursorOffsetAtStart: cursorOff }
+		setDragging(true)
+	}, [projectToGround, start.x, start.y, px, py, offset])
+
+	// Global pointermove/up while dragging
+	useEffect(() => {
+		if (!dragging) return
+		gl.domElement.style.cursor = 'grabbing'
+		const onMove = (e: PointerEvent) => {
+			if (!dragRef.current) return
+			const pt = projectToGround(e.clientX, e.clientY)
+			if (!pt) return
+			const cursorOff = (pt.x - start.x) * px + (pt.y - start.y) * py
+			const raw = dragRef.current.initialOffset + (cursorOff - dragRef.current.cursorOffsetAtStart)
+			const snapped = snapStep > 0 ? Math.round(raw / snapStep) * snapStep : raw
+			onOffsetChange(snapped)
+		}
+		const onUp = () => {
+			setDragging(false)
+			dragRef.current = null
+		}
+		window.addEventListener('pointermove', onMove)
+		window.addEventListener('pointerup', onUp)
+		return () => {
+			gl.domElement.style.cursor = ''
+			window.removeEventListener('pointermove', onMove)
+			window.removeEventListener('pointerup', onUp)
+		}
+	}, [dragging, projectToGround, start.x, start.y, px, py, snapStep, onOffsetChange, gl.domElement])
+
 	if (!linesObj) return null
 
-	// Label position: midpoint of the offset dim line, slightly above
-	const dx = end.x - start.x, dy = end.y - start.y
-	const len = Math.sqrt(dx * dx + dy * dy)
-	const ux = dx / len, uy = dy / len
-	const px = -uy, py = ux
-	const midX = (start.x + end.x) / 2 + px * DIM_OFFSET
-	const midY = (start.y + end.y) / 2 + py * DIM_OFFSET
+	const Ax = start.x + px * offset, Ay = start.y + py * offset
+	const Bx = end.x   + px * offset, By = end.y   + py * offset
+	const midX = (Ax + Bx) / 2, midY = (Ay + By) / 2
+	const dimAngle = Math.atan2(uy, ux)
 
 	return (
 		<>
 			<primitive object={linesObj} raycast={() => null} />
+
+			{/* Transparent hit plane covering the dim line — drag handle */}
+			<mesh
+				position={[midX, midY, DIM_Z + 0.01]}
+				rotation={[0, 0, dimAngle]}
+				onPointerDown={handlePointerDown}
+				onPointerEnter={() => { setHovered(true); gl.domElement.style.cursor = 'grab' }}
+				onPointerLeave={() => { setHovered(false); if (!dragging) gl.domElement.style.cursor = '' }}
+			>
+				<planeGeometry args={[distance + 0.2, 0.4]} />
+				<meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} />
+			</mesh>
+
 			<Html
 				position={[midX, midY, DIM_Z + 0.05]}
 				center
 				zIndexRange={[200, 201]}
 				style={{ pointerEvents: 'none', userSelect: 'none' }}
 			>
-				<div className="perm-dim-label">
+				<div className={`perm-dim-label${hovered || dragging ? ' perm-dim-label--active' : ''}`}>
 					<span className="perm-dim-value">{distance.toFixed(2)}</span>
 					<span className="perm-dim-unit"> ft</span>
 					<button
@@ -741,6 +818,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		start: { x: number; y: number }
 		end: { x: number; y: number }
 		distance: number
+		offset: number   // perpendicular offset in ft (draggable)
 	}
 	const [permanentDims, setPermanentDims] = useState<PermanentDimRecord[]>([])
 
@@ -2050,6 +2128,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 					start: anchor,
 					end: dimEnd,
 					distance: hud.distance,
+					offset: DIM_INITIAL_OFFSET,
 				}])
 			}
 			cancelStackMove()
@@ -2767,7 +2846,11 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 						start={dim.start}
 						end={dim.end}
 						distance={dim.distance}
+						offset={dim.offset}
 						onRemove={() => setPermanentDims(prev => prev.filter(d => d.id !== dim.id))}
+						onOffsetChange={newOffset => setPermanentDims(prev =>
+							prev.map(d => d.id === dim.id ? { ...d, offset: newOffset } : d)
+						)}
 					/>
 				))}
 

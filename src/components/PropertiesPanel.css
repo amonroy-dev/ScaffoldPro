@@ -1735,6 +1735,12 @@
   white-space: nowrap;
   backdrop-filter: blur(6px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.perm-dim-label--active {
+  border-color: rgba(147, 197, 253, 0.8);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
 }
 
 .perm-dim-value {
