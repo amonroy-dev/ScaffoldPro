@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { RinglockStandards, type RinglockStandardInstance } from './RinglockStandards'
 import { RinglockLedgers, type RinglockLedgerInstance } from './RinglockLedgers'
 import { RinglockBases, type RinglockBaseInstance, getStandardBaseOffsetFt } from './RinglockBases'
+import { FIRST_ROSETTE_OFFSET_IN, ROSETTE_SPACING_IN } from './scaffoldGeometry'
 import { useScaffoldBaseSettings } from '../../contexts/ScaffoldBaseSettings'
 import { useTool } from '../../contexts/ToolContext'
 import { UNIVERSAL_RINGLOCK_STANDARD_ORDER, UNIVERSAL_RINGLOCK_STANDARDS } from './ringlockCatalog'
@@ -81,8 +82,8 @@ export function ScaffoldCatalogPreview() {
 	  }, [defaultJackExtensionIn, showWoodSill, showBaseCollar])
 
   const ledgers = useMemo<RinglockLedgerInstance[]>(() => {
-    const firstRosetteOffsetFt = inchesToFeet(15)
-    const rosetteSpacingFt = inchesToFeet(19.688)
+    const firstRosetteOffsetFt = inchesToFeet(FIRST_ROSETTE_OFFSET_IN)
+    const rosetteSpacingFt = inchesToFeet(ROSETTE_SPACING_IN)
     const left = ledgerStandards[0].basePosition
     const right = ledgerStandards[1].basePosition
 

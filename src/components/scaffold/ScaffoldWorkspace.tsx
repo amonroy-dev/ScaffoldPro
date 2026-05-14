@@ -838,7 +838,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		  const { categoryKey, manufacturerId, selectedManufacturer, selectedPart } = useCatalogSelection()
 
 					const isPlacingStandard = categoryKey === 'standards' && selectedPart !== null
-					const isPlacingLedger = categoryKey === 'ledgers' || categoryKey === 'trusses'
+					const isPlacingLedger = categoryKey === 'ledgers' || categoryKey === 'trusses' || categoryKey === 'braces'
 					const isPlacingPlank = categoryKey === 'planks'
 					const isPlacingLiveLoad = categoryKey === 'liveLoads'
 					const isBlockInspectMode = activeTool === 'block' && blockToolSettings.mode === 'inspect'
@@ -1396,27 +1396,39 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		return map
 	}, [scaffoldStacks, movingStackIdSet, baseSettings.showWoodSill, baseSettings.showBaseCollar])
 
-  // Convert ledger connections to render instances
-	  const ledgerInstances = useMemo<RinglockLedgerInstance[]>(() => {
-	    return ledgerConnections
-				.filter((conn) => !(movingStackIdSet.has(conn.startNode.stackId) || movingStackIdSet.has(conn.endNode.stackId)))
-				.map((conn): RinglockLedgerInstance | null => {
-      const startNodes = rosettePositionByLiftByStackId.get(conn.startNode.stackId)
-      const endNodes = rosettePositionByLiftByStackId.get(conn.endNode.stackId)
-      if (!startNodes || !endNodes) return null
-
-      const startNode = startNodes.get(conn.startNode.liftIndex)
-      const endNode = endNodes.get(conn.endNode.liftIndex)
-      if (!startNode || !endNode) return null
-
-	      return {
-	        id: conn.id,
-	        partNumber: conn.ledgerPartNumber,
-	        start: startNode.clone(),
-	        end: endNode.clone(),
+  // Convert ledger connections to render instances.
+  // UD* connections are manually-placed diagonal braces — route them to diagonalInstances.
+	  const { ledgerInstances, manualDiagonalInstances } = useMemo(() => {
+	    const ledgers: RinglockLedgerInstance[] = []
+	    const diagonals: RinglockDiagonalInstance[] = []
+	    for (const conn of ledgerConnections) {
+	      if (movingStackIdSet.has(conn.startNode.stackId) || movingStackIdSet.has(conn.endNode.stackId)) continue
+	      const startNodes = rosettePositionByLiftByStackId.get(conn.startNode.stackId)
+	      const endNodes = rosettePositionByLiftByStackId.get(conn.endNode.stackId)
+	      if (!startNodes || !endNodes) continue
+	      const startNode = startNodes.get(conn.startNode.liftIndex)
+	      const endNode = endNodes.get(conn.endNode.liftIndex)
+	      if (!startNode || !endNode) continue
+	      if (conn.ledgerPartNumber.startsWith('UD')) {
+          const startPos = startNode.clone()
+          const endPos = endNode.clone()
+          if (conn.diagonalSide) {
+            const dx = endPos.x - startPos.x
+            const dy = endPos.y - startPos.y
+            const len = Math.sqrt(dx * dx + dy * dy)
+            if (len > 1e-6) {
+              const perpX = (-dy / len) * (2.364 / 12) * conn.diagonalSide
+              const perpY = (dx / len) * (2.364 / 12) * conn.diagonalSide
+              startPos.x += perpX; startPos.y += perpY
+              endPos.x += perpX; endPos.y += perpY
+            }
+          }
+	        diagonals.push({ id: conn.id, partNumber: conn.ledgerPartNumber, start: startPos, end: endPos })
+	      } else {
+	        ledgers.push({ id: conn.id, partNumber: conn.ledgerPartNumber, start: startNode.clone(), end: endNode.clone() })
 	      }
-	    })
-				.filter((l): l is RinglockLedgerInstance => l !== null)
+	    }
+	    return { ledgerInstances: ledgers, manualDiagonalInstances: diagonals }
 	}, [ledgerConnections, movingStackIdSet, rosettePositionByLiftByStackId])
 
 	const stackIdBySupportKey = useMemo(() => {
@@ -2794,7 +2806,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 							/>
 
 							<RinglockDiagonals
-								diagonals={diagonalInstances}
+								diagonals={manualDiagonalInstances.length > 0 ? [...diagonalInstances, ...manualDiagonalInstances] : diagonalInstances}
 								selectedId={selectedObjectId?.startsWith('diagonal-') ? selectedObjectId.slice('diagonal-'.length) : null}
 								clippingPlanes={clippingPlanes}
 								onSelect={selectionEnabled ? handleDiagonalSelect : undefined}

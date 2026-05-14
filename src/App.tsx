@@ -166,8 +166,13 @@ export function AppContent() {
 				removeManualLiveLoadPlacement(placementId)
 				} else if (selectedObjectId.startsWith('diagonal-')) {
 					const diagonal = parseDiagonalSelectionId(selectedObjectId)
-					if (!diagonal) return
+					if (diagonal) {
 						suppressDiagonalMemberInBlock(diagonal.blockId, diagonal.diagonalId)
+					} else {
+						// Manual diagonal brace (LedgerConnection with UD* part number)
+						const connectionId = selectedObjectId.slice('diagonal-'.length)
+						removeLedgerConnection(connectionId)
+					}
 					setSelectedObjectId(null)
 			} else {
 				const isBuildingEntitySelection = buildingEntities.some(entity => entity.id === selectedObjectId)

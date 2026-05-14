@@ -16,6 +16,8 @@ type CatalogSelectionState = {
   manufacturerId: CatalogManufacturerId
   categoryKey: CatalogCategoryKey
   partId: string | null
+  bracePlacementSide: 1 | -1
+  bracePlacementDirection: 'ascending' | 'descending'
 }
 
 type CatalogSelectionApi = CatalogSelectionState & {
@@ -23,6 +25,8 @@ type CatalogSelectionApi = CatalogSelectionState & {
   setCategoryKey: (key: CatalogCategoryKey) => void
   setPartId: (id: string | null) => void
   clearSelection: () => void
+  setBracePlacementSide: (side: 1 | -1) => void
+  setBracePlacementDirection: (dir: 'ascending' | 'descending') => void
 }
 
 const CatalogDataContext = createContext<Catalog | null>(null)
@@ -49,6 +53,8 @@ export function CatalogProvider({
   const [categoryKey, setCategoryKeyState] = useState<CatalogCategoryKey>('standards')
 	  // Intentionally start with NO part selected so users must explicitly choose a part before placing.
 	  const [partId, setPartIdState] = useState<string | null>(null)
+  const [bracePlacementSide, setBracePlacementSideState] = useState<1 | -1>(1)
+  const [bracePlacementDirection, setBracePlacementDirectionState] = useState<'ascending' | 'descending'>('ascending')
 
   const clearSelection = useCallback(() => {
     setManufacturerIdState(defaultManufacturerId)
@@ -78,17 +84,29 @@ export function CatalogProvider({
     setPartIdState(id)
   }, [])
 
+  const setBracePlacementSide = useCallback((side: 1 | -1) => {
+    setBracePlacementSideState(side)
+  }, [])
+
+  const setBracePlacementDirection = useCallback((dir: 'ascending' | 'descending') => {
+    setBracePlacementDirectionState(dir)
+  }, [])
+
   const selectionValue: CatalogSelectionApi = useMemo(
     () => ({
       manufacturerId,
       categoryKey,
       partId,
+      bracePlacementSide,
+      bracePlacementDirection,
       setManufacturerId,
       setCategoryKey,
       setPartId,
       clearSelection,
+      setBracePlacementSide,
+      setBracePlacementDirection,
     }),
-    [manufacturerId, categoryKey, partId, setManufacturerId, setCategoryKey, setPartId, clearSelection],
+    [manufacturerId, categoryKey, partId, bracePlacementSide, bracePlacementDirection, setManufacturerId, setCategoryKey, setPartId, clearSelection, setBracePlacementSide, setBracePlacementDirection],
   )
 
   return (

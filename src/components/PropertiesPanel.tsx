@@ -710,7 +710,7 @@ function getBaseMassInnerRadiusFt(entity: BaseMassEntity): number {
 export function PropertiesPanel() {
   const { settings } = useSettings()
   const { baseSettings } = useScaffoldBaseSettings()
-  const { categoryKey } = useCatalogSelection()
+  const { categoryKey, bracePlacementSide, bracePlacementDirection, setBracePlacementSide, setBracePlacementDirection } = useCatalogSelection()
   const {
     activeTool,
     blockToolSettings,
@@ -763,6 +763,7 @@ export function PropertiesPanel() {
     getSelectedStacks,
     updateScaffoldStack,
     updateManualLiveLoadPlacement,
+    updateLedgerConnection,
 		requestAutoScaffoldAroundBuilding,
     stackEditActionMode,
     setStackEditActionMode,
@@ -1429,6 +1430,14 @@ export function PropertiesPanel() {
     return ledgerConnections.find(c => c.id === connectionId) || null
   }, [selectedObjectId, ledgerConnections])
 
+  // Detect if a manually-placed diagonal brace is selected (diagonal-{ledger-uuid}, no @brace-)
+  const selectedManualDiagonalConnection = useMemo(() => {
+    if (!selectedObjectId?.startsWith('diagonal-')) return null
+    const id = selectedObjectId.slice('diagonal-'.length)
+    if (id.includes('@brace-')) return null
+    return ledgerConnections.find(c => c.id === id && c.ledgerPartNumber.startsWith('UD')) ?? null
+  }, [selectedObjectId, ledgerConnections])
+
 	const selectedLiveLoad = useMemo(() => {
 		if (!selectedObjectId?.startsWith('live-load-')) return null
 		const placementId = selectedObjectId.replace('live-load-', '')
@@ -1630,6 +1639,7 @@ export function PropertiesPanel() {
 
   const isLoadToolActive = workspaceMode === 'SCAFFOLD_MODE' && categoryKey === 'liveLoads'
   const isBlockToolActive = workspaceMode === 'SCAFFOLD_MODE' && activeTool === 'block' && !isLoadToolActive
+  const isBracePlacementMode = workspaceMode === 'SCAFFOLD_MODE' && categoryKey === 'braces' && !selectedManualDiagonalConnection && !selectedDiagonal
 	const blockToolWarningNotice = isBlockToolActive && blockPlacementWarning
 		? <div className="properties-hint properties-warning">{blockPlacementWarning}</div>
 		: null
@@ -1968,7 +1978,7 @@ export function PropertiesPanel() {
     ? selected.workspace === activeOwner
     : isScaffold
       ? workspaceMode === 'SCAFFOLD_MODE'
-			      : (!!selectedBlock || hasStandardSelected || selectedLedgerConnection || !!selectedLiveLoad || !!selectedBaseComponentType || !!selectedDiagonal)
+			      : (!!selectedBlock || hasStandardSelected || selectedLedgerConnection || !!selectedManualDiagonalConnection || !!selectedLiveLoad || !!selectedBaseComponentType || !!selectedDiagonal)
         ? workspaceMode === 'SCAFFOLD_MODE'
         : false
 
@@ -1976,6 +1986,7 @@ export function PropertiesPanel() {
 		&& !selectedLiveLoad
 		&& !selectedLedgerConnection
 		&& !selectedDiagonal
+		&& !selectedManualDiagonalConnection
 		&& !selectedBaseComponentType
 		&& !hasStandardSelected
 
@@ -4420,6 +4431,12 @@ export function PropertiesPanel() {
 			) {
 				return 'Block Generator'
 			}
+			if (isBracePlacementMode) {
+				return 'Brace Placement'
+			}
+			if (selectedManualDiagonalConnection) {
+				return selectedManualDiagonalConnection.ledgerPartNumber
+			}
 			if (selectedDiagonal) {
 				return selectedDiagonal.partNumber ?? 'Brace Diagonal'
 			}
@@ -4467,10 +4484,12 @@ export function PropertiesPanel() {
 		isBlockToolActive,
 			selectedBlock,
 		showLiveLoadPlacementControls,
+		isBracePlacementMode,
 		hasStandardSelected,
 		selectedStacks,
 			selectedStandardSegment,
 		selectedLedgerConnection,
+		selectedManualDiagonalConnection,
 			selectedLiveLoad,
 			selectedDiagonal,
 		selectedBaseComponentType,
@@ -4496,6 +4515,12 @@ export function PropertiesPanel() {
 				!selected
 			) {
 				return 'Configure dimensions, then click the grid to place a scaffold block'
+			}
+			if (isBracePlacementMode) {
+				return 'Set direction and side, then click a rosette node to place a diagonal brace'
+			}
+			if (selectedManualDiagonalConnection) {
+				return `Diagonal brace - ${selectedManualDiagonalConnection.ledgerPartNumber}. Press Delete to remove.`
 			}
 			if (selectedDiagonal) {
 				const weight = selectedWeight
@@ -5518,6 +5543,58 @@ export function PropertiesPanel() {
 	            <div className="properties-hint live-load-workflow-tip">
 	              Hover a level to preview it in the scene. Click a highlighted scaffold section to focus it, then use the include or exclude toggle here without leaving Loads.
 	            </div>
+	          </div>
+	        </div>
+	      ) : isBracePlacementMode ? (
+	        <div className="properties-body">
+	          <div className="prop-row">
+	            <label>Direction</label>
+	            <select
+	              value={bracePlacementDirection}
+	              onChange={e => setBracePlacementDirection(e.target.value as 'ascending' | 'descending')}
+	            >
+	              <option value="ascending">/  (ascending)</option>
+	              <option value="descending">\  (descending)</option>
+	            </select>
+	          </div>
+	          <div className="prop-row">
+	            <label>Side</label>
+	            <select
+	              value={String(bracePlacementSide)}
+	              onChange={e => setBracePlacementSide(Number(e.target.value) as 1 | -1)}
+	            >
+	              <option value="1">Front (+1)</option>
+	              <option value="-1">Back (−1)</option>
+	            </select>
+	          </div>
+	          <div className="properties-hint">
+	            Click a rosette node to place a diagonal brace. The brace connects to the nearest adjacent standard at the lift above (ascending) or below (descending).
+	          </div>
+	        </div>
+	      ) : selectedManualDiagonalConnection ? (
+	        <div className="properties-body">
+	          <div className="prop-row">
+	            <label>Direction</label>
+	            <select
+	              value={selectedManualDiagonalConnection.diagonalDirection ?? 'ascending'}
+	              onChange={e => updateLedgerConnection(selectedManualDiagonalConnection.id, { diagonalDirection: e.target.value as 'ascending' | 'descending' })}
+	            >
+	              <option value="ascending">/  (ascending)</option>
+	              <option value="descending">\  (descending)</option>
+	            </select>
+	          </div>
+	          <div className="prop-row">
+	            <label>Side</label>
+	            <select
+	              value={String(selectedManualDiagonalConnection.diagonalSide ?? 1)}
+	              onChange={e => updateLedgerConnection(selectedManualDiagonalConnection.id, { diagonalSide: Number(e.target.value) as 1 | -1 })}
+	            >
+	              <option value="1">Front (+1)</option>
+	              <option value="-1">Back (−1)</option>
+	            </select>
+	          </div>
+	          <div className="properties-hint">
+	            Diagonal brace. Press Delete to remove this member.
 	          </div>
 	        </div>
 	      ) : selectedDiagonal ? (

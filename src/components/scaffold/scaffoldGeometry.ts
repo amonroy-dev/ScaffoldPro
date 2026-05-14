@@ -4,11 +4,11 @@ import { inchesToFeet } from './units'
 import { UNIVERSAL_RINGLOCK_STANDARDS, type UniversalRinglockStandardId } from './ringlockCatalog'
 
 // Constants for rosette positioning
-export const FIRST_ROSETTE_OFFSET_IN = 15
-export const ROSETTE_SPACING_IN = 19.688
-// Distance from bottom of base collar to CENTER of rosette
-// (3.563" to top of rosette + 0.18" half thickness = 3.743" to center)
-export const COLLAR_ROSETTE_CENTER_OFFSET_IN = 3.743
+export const FIRST_ROSETTE_OFFSET_IN = 15.75
+export const ROSETTE_SPACING_IN = 19.6875
+// Keep the base-collar rosette exactly one typical bay spacing below the first
+// standard rosette center: 7" lower sleeve + 15.75" first offset - 19.6875" spacing.
+export const COLLAR_ROSETTE_CENTER_OFFSET_IN = 3.0625
 
 // NOTE: These values must match the visual base geometry in RinglockBases.tsx.
 const WOOD_SILL_THICKNESS_IN = 0.5

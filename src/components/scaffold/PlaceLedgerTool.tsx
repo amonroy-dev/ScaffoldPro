@@ -10,6 +10,7 @@ import { RosetteNodes, type RosetteNode } from './RosetteNodes'
 import {
 	findClosestLedger,
 	findClosestTruss,
+	findClosestDiagonal,
 	type RosetteNodeRef,
 	type LedgerConnection,
 } from '../../types/scaffoldGraph'
@@ -55,19 +56,22 @@ function ledgerExistsBetween(
  */
 export function PlaceLedgerTool() {
   const { workspaceMode, scaffoldStacks, ledgerConnections, addLedgerConnection } = useTool()
-  const { categoryKey } = useCatalogSelection()
+  const { categoryKey, bracePlacementSide, bracePlacementDirection } = useCatalogSelection()
   const { baseSettings } = useScaffoldBaseSettings()
   const { showWoodSill, showBaseCollar } = baseSettings
 
-	// Horizontal placement mode: select "ledgers" or "trusses" category (no specific part needed)
+	// Placement mode: select "ledgers", "trusses", or "braces" category (no specific part needed)
 	const isPlacingLedger =
-		workspaceMode === 'SCAFFOLD_MODE' && (categoryKey === 'ledgers' || categoryKey === 'trusses')
+		workspaceMode === 'SCAFFOLD_MODE' && (categoryKey === 'ledgers' || categoryKey === 'trusses' || categoryKey === 'braces')
+	const isBrace = categoryKey === 'braces'
 
 	const findClosestPartNumber = useCallback(
 		(distanceIn: number) =>
 			categoryKey === 'trusses'
 				? findClosestTruss(distanceIn, 12, false)
-				: findClosestLedger(distanceIn, 12, false),
+				: categoryKey === 'braces'
+					? findClosestDiagonal(distanceIn, 12, false)
+					: findClosestLedger(distanceIn, 12, false),
 		[categoryKey],
 	)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
@@ -327,6 +331,37 @@ export function PlaceLedgerTool() {
 	  }, [nodes, ledgerConnections, computeLiftAxes, computeAdjacencyScaleFt, getAdjacentCandidates])
 
   /**
+   * Find the diagonal brace target for a source rosette node.
+   * Braces connect (stackA, liftN) → (stackB, liftN+4) or liftN-4 on the nearest adjacent standard.
+   * Part number is selected by horizontal bay distance (same as block mode).
+   */
+  const findDiagonalBraceTarget = useCallback((sourceNode: RosetteNode, direction: 'ascending' | 'descending' = 'ascending'): RosetteNode | null => {
+    const nodesAtLift = nodes.filter(n => n.liftIndex === sourceNode.liftIndex)
+    const adjacencyScaleFt = computeAdjacencyScaleFt(nodesAtLift)
+    const axes = computeLiftAxes(nodesAtLift, adjacencyScaleFt)
+    if (!axes) return null
+    const maxProjFt = Math.max(adjacencyScaleFt * 2.5, 12)
+
+    // All adjacent standards at the same lift, sorted by horizontal distance
+    const adjacent = getAdjacentCandidates(sourceNode, nodesAtLift, axes, maxProjFt, () => true)
+    adjacent.sort((a, b) =>
+      sourceNode.position.distanceTo(a.position) - sourceNode.position.distanceTo(b.position)
+    )
+
+    const deltaLift = direction === 'ascending' ? 4 : -4
+    for (const adj of adjacent) {
+      const targetLiftIndex = sourceNode.liftIndex + deltaLift
+      if (targetLiftIndex < 0) continue
+      const targetNode = nodes.find(n => n.stackId === adj.stackId && n.liftIndex === targetLiftIndex)
+      if (!targetNode) continue
+      const sRef: RosetteNodeRef = { stackId: sourceNode.stackId, liftIndex: sourceNode.liftIndex }
+      const eRef: RosetteNodeRef = { stackId: targetNode.stackId, liftIndex: targetNode.liftIndex }
+      if (!ledgerExistsBetween(ledgerConnections, sRef, eRef)) return targetNode
+    }
+    return null
+  }, [nodes, ledgerConnections, computeLiftAxes, computeAdjacencyScaleFt, getAdjacentCandidates])
+
+  /**
    * Compute all possible ledger connections at a given lift level.
    * Rules:
    * - Adjacent neighbors only
@@ -407,16 +442,19 @@ export function PlaceLedgerTool() {
       return
     }
     const hoveredNode = nodes[hoveredIndex]
-    const target = findClosestUnoccupiedTarget(hoveredNode)
+    const target = isBrace
+      ? findDiagonalBraceTarget(hoveredNode, bracePlacementDirection)
+      : findClosestUnoccupiedTarget(hoveredNode)
     setPreviewTarget(target)
-  }, [hoveredIndex, nodes, findClosestUnoccupiedTarget])
+  }, [hoveredIndex, nodes, isBrace, bracePlacementDirection, findDiagonalBraceTarget, findClosestUnoccupiedTarget])
 
-  // Determine if a node is a valid click target (has at least one unoccupied neighbor)
+  // Determine if a node is a valid click target
   const isValidTarget = useCallback(
     (node: RosetteNode) => {
+      if (isBrace) return findDiagonalBraceTarget(node, bracePlacementDirection) !== null
       return findClosestUnoccupiedTarget(node) !== null
     },
-    [findClosestUnoccupiedTarget],
+    [isBrace, bracePlacementDirection, findDiagonalBraceTarget, findClosestUnoccupiedTarget],
   )
 
   // Compute preview line from hovered node to its closest target
@@ -444,16 +482,16 @@ export function PlaceLedgerTool() {
     setBatchPlan([])
   }, [isPlacingLedger])
 
-  // Compute batch plan when Shift is held and hovering a node
+  // Compute batch plan when Shift is held and hovering a node (ledgers/trusses only — not braces)
   useEffect(() => {
-    if (!shiftHeld || hoveredIndex === null || hoveredIndex >= nodes.length) {
+    if (isBrace || !shiftHeld || hoveredIndex === null || hoveredIndex >= nodes.length) {
       setBatchPlan([])
       return
     }
     const hoveredNode = nodes[hoveredIndex]
 	  const plan = computeBatchPlan(hoveredNode.liftIndex)
     setBatchPlan(plan)
-  }, [shiftHeld, hoveredIndex, nodes, computeBatchPlan])
+  }, [isBrace, shiftHeld, hoveredIndex, nodes, computeBatchPlan])
 
   // Animation pulse for batch preview
   useFrame((_, delta) => {
@@ -495,45 +533,52 @@ export function PlaceLedgerTool() {
 
   /**
    * Handle click on a rosette node.
-   * - If Shift is held and batch plan exists: confirm batch placement
-   * - Otherwise: ONE CLICK placement (single ledger)
+   * - Braces: ONE CLICK places a diagonal from (stackA, liftN) → (stackB, liftN±4)
+   * - Ledgers/trusses: ONE CLICK places same-lift horizontal; Shift+click confirms batch
    */
   const handleNodePointerDown = useCallback(
     (node: RosetteNode, e: ThreeEvent<PointerEvent>) => {
       if (!isPlacingLedger) return
       e.stopPropagation()
 
-      // If Shift is held and we have a batch plan, confirm it
+      if (isBrace) {
+        const target = findDiagonalBraceTarget(node, bracePlacementDirection)
+        if (!target) return
+        const sourceRef: RosetteNodeRef = { stackId: node.stackId, liftIndex: node.liftIndex }
+        const targetRef: RosetteNodeRef = { stackId: target.stackId, liftIndex: target.liftIndex }
+        // Part number by horizontal (XY) distance — same as block mode
+        const dx = node.position.x - target.position.x
+        const dy = node.position.y - target.position.y
+        const horizontalDistIn = Math.sqrt(dx * dx + dy * dy) * 12
+        const partNumber = findClosestPartNumber(horizontalDistIn)
+        if (!partNumber) return
+        addLedgerConnection(sourceRef, targetRef, partNumber, { diagonalSide: bracePlacementSide, diagonalDirection: bracePlacementDirection })
+        return
+      }
+
+      // Ledger / truss: batch or single
       if (shiftHeld && batchPlan.length > 0) {
         confirmBatchPlacement()
         return
       }
-
-      // Standard one-click placement
       const target = findClosestUnoccupiedTarget(node)
-
-      if (!target) {
-        // No valid unoccupied target - do nothing (all connections at this level are taken)
-        return
-      }
-
+      if (!target) return
       const sourceRef: RosetteNodeRef = { stackId: node.stackId, liftIndex: node.liftIndex }
       const targetRef: RosetteNodeRef = { stackId: target.stackId, liftIndex: target.liftIndex }
-
-      // Calculate distance and auto-select the appropriate ledger part
-      const distIn = node.position.distanceTo(target.position) * 12 // feet to inches
-	  	const partNumber = findClosestPartNumber(distIn) // 12" tolerance, always pick closest
-
-	  	if (!partNumber) {
-	  	  console.warn('No suitable horizontal found for distance:', distIn, 'inches')
+      const distIn = node.position.distanceTo(target.position) * 12
+      const partNumber = findClosestPartNumber(distIn)
+      if (!partNumber) {
+        console.warn('No suitable horizontal found for distance:', distIn, 'inches')
         return
       }
-
-      // Create the ledger connection
-	  	addLedgerConnection(sourceRef, targetRef, partNumber)
+      addLedgerConnection(sourceRef, targetRef, partNumber)
     },
 	  [
 		isPlacingLedger,
+		isBrace,
+		bracePlacementSide,
+		bracePlacementDirection,
+		findDiagonalBraceTarget,
 		shiftHeld,
 		batchPlan,
 		confirmBatchPlacement,

@@ -559,8 +559,9 @@ interface ToolContextType {
 	updateAllScaffoldStacks: (
 		partial: Partial<Pick<ScaffoldStack, 'jackExtensionIn' | 'showWoodSill' | 'showBaseCollar' | 'baseSupport'>>
 	) => void
-  addLedgerConnection: (startNode: RosetteNodeRef, endNode: RosetteNodeRef, ledgerPartNumber: string) => LedgerConnection
+  addLedgerConnection: (startNode: RosetteNodeRef, endNode: RosetteNodeRef, ledgerPartNumber: string, options?: { diagonalSide?: 1 | -1; diagonalDirection?: 'ascending' | 'descending' }) => LedgerConnection
   removeLedgerConnection: (connectionId: string) => void
+  updateLedgerConnection: (id: string, partial: Partial<Pick<LedgerConnection, 'diagonalSide' | 'diagonalDirection'>>) => void
 	addManualPlankPlacement: (supportLedgerId: string, sideSign: 1 | -1) => ManualPlankPlacement
 	removeManualPlankPlacement: (placementId: string) => void
 	addManualLiveLoadPlacement: (supportLedgerId: string, sideSign: 1 | -1, magnitudePsf?: number) => ManualLiveLoadPlacement
@@ -2637,7 +2638,8 @@ export function ToolProvider({ children }: { children: ReactNode }) {
   const addLedgerConnection = useCallback((
     startNode: RosetteNodeRef,
     endNode: RosetteNodeRef,
-    ledgerPartNumber: string
+    ledgerPartNumber: string,
+    options?: { diagonalSide?: 1 | -1; diagonalDirection?: 'ascending' | 'descending' }
   ): LedgerConnection => {
 			const findExisting = (connections: LedgerConnection[]) =>
 				connections.find(conn => {
@@ -2657,6 +2659,8 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 				startNode,
 				endNode,
 				ledgerPartNumber,
+				...(options?.diagonalSide !== undefined ? { diagonalSide: options.diagonalSide } : {}),
+				...(options?.diagonalDirection !== undefined ? { diagonalDirection: options.diagonalDirection } : {}),
 			}
 
 			setLedgerConnections(prev => {
@@ -2665,6 +2669,13 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 				return [...prev, connection]
 			})
 			return connection
+  }, [])
+
+  const updateLedgerConnection = useCallback((
+    id: string,
+    partial: Partial<Pick<LedgerConnection, 'diagonalSide' | 'diagonalDirection'>>
+  ): void => {
+    setLedgerConnections(prev => prev.map(conn => conn.id === id ? { ...conn, ...partial } : conn))
   }, [])
 
 	const addManualPlankPlacement = useCallback((supportLedgerId: string, sideSign: 1 | -1): ManualPlankPlacement => {
@@ -5826,6 +5837,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			suppressDiagonalMemberInBlock,
       addLedgerConnection,
       removeLedgerConnection,
+      updateLedgerConnection,
 				addManualPlankPlacement,
 				removeManualPlankPlacement,
 				addManualLiveLoadPlacement,

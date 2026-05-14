@@ -4,6 +4,7 @@ import { ThreeEvent } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { WORKSPACE_LAYERS } from '../../contexts/ToolContext'
+import { FIRST_ROSETTE_OFFSET_IN, ROSETTE_SPACING_IN } from './scaffoldGeometry'
 import { inchesToFeet } from './units'
 
 // Base materials (restore original look)
@@ -58,8 +59,8 @@ const DEFAULT_VISUAL: Required<RinglockStandardVisualSpec> = {
   rosetteDiameterIn: 4.84,
   rosetteThicknessIn: 0.36,
   rosetteRadialSegments: 24,
-  firstRosetteOffsetIn: 15,
-  rosetteSpacingIn: 19.688,
+  firstRosetteOffsetIn: FIRST_ROSETTE_OFFSET_IN,
+  rosetteSpacingIn: ROSETTE_SPACING_IN,
 }
 
 /**

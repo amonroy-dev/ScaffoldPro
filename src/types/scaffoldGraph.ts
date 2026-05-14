@@ -63,6 +63,10 @@ export interface LedgerConnection {
   endNode: RosetteNodeRef
   /** Ledger part number from catalog (e.g., 'UH100'), auto-selected or explicit */
   ledgerPartNumber: string
+  /** For UD* diagonal braces: perpendicular side offset (+1 or -1 relative to face direction). */
+  diagonalSide?: 1 | -1
+  /** For UD* diagonal braces: 'ascending' = start lower / end upper (+4 lift), 'descending' = reverse. */
+  diagonalDirection?: 'ascending' | 'descending'
 }
 
 /**
