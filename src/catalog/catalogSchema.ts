@@ -12,12 +12,7 @@ import * as z from 'zod'
  *   later introduce exceptions without changing the data model.
  */
 
-export const CatalogManufacturerIdSchema = z.enum([
-  'universal',
-  'layher',
-  'brandsafway',
-  'direct',
-])
+export const CatalogManufacturerIdSchema = z.enum(['universal'])
 export type CatalogManufacturerId = z.infer<typeof CatalogManufacturerIdSchema>
 
 export const CatalogCategoryKeySchema = z.enum(['standards', 'ledgers', 'braces', 'trusses', 'sideBrackets', 'planks', 'liveLoads'])

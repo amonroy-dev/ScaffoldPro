@@ -11,7 +11,7 @@ import { RinglockPlanks, RINGLOCK_PLANK_PROFILE_DEPTH_IN, RINGLOCK_PLANK_WIDTH_I
 import { RinglockLiveLoads } from './RinglockLiveLoads'
 import { useScaffoldBaseSettings } from '../../contexts/ScaffoldBaseSettings'
 import { useSettings } from '../../contexts/SettingsContext'
-import { useTool, type LiveLoadDeckTarget, type StackCadHud } from '../../contexts/ToolContext'
+import { useTool, type LiveLoadDeckTarget, type StackCadHud, type PermanentDimRecord } from '../../contexts/ToolContext'
 import { useCatalogSelection } from '../../contexts/CatalogContext'
 import { UNIVERSAL_RINGLOCK_STANDARDS, type UniversalRinglockStandardId } from './ringlockCatalog'
 import { buildBestFitPlankLayout, resolveClosestCatalogPlankPartNumber } from './plankLayout'
@@ -830,6 +830,8 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
     setStackOrthoLocked,
     stackCadHud,
     setStackCadHud,
+    permanentDims,
+    setPermanentDims,
     addPerimeterDimsRef,
     clearSelectedDimsRef,
   } = useTool()
@@ -870,14 +872,6 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 	}, [blockDragHiddenStackIds, movingBlockIdSet, scaffoldBlocks, scaffoldStacks])
 
 	// ─── Permanent copy dimensions ──────────────────────────────────────────
-	type PermanentDimRecord = {
-		id: string
-		start: { x: number; y: number }
-		end: { x: number; y: number }
-		distance: number
-		offset: number   // perpendicular offset in ft (draggable)
-	}
-	const [permanentDims, setPermanentDims] = useState<PermanentDimRecord[]>([])
 	const [selectedDimIds, setSelectedDimIds] = useState<string[]>([])
 
 	// Delete selected dims (capture phase — runs before App.tsx bubble-phase delete handler)
@@ -2173,11 +2167,14 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 			stackMoveAnchorRef.current = { x: pt.x, y: pt.y }
 			setStackMoveAnchor({ x: pt.x, y: pt.y })
 			setStackPreviewOffset({ dx: 0, dy: 0 })
+			// Default to ortho ON; user can toggle off with F8
+			stackOrthoLockedRef.current = true
+			setStackOrthoLocked(true)
 			setStackMoveStep('place')
 		}
 		canvas.addEventListener('pointerdown', onDown, true)
 		return () => canvas.removeEventListener('pointerdown', onDown, true)
-	}, [cameraNavigationActive, gl.domElement, projectClientToGround, setStackMoveStep, stackEditActionMode, stackMoveStep])
+	}, [cameraNavigationActive, gl.domElement, projectClientToGround, setStackMoveStep, setStackOrthoLocked, stackEditActionMode, stackMoveStep])
 
 	// Ghost preview tracking (pointer-move during 'place')
 	useEffect(() => {

@@ -18,9 +18,12 @@ const LEDGER_POOL = 1000
 const TRUSS_POOL = 200
 const MOUTHPIECE_POOL = LEDGER_POOL * 2
 const FEET_PER_METER = 3.280839895013123
-const MOUTHPIECE_SEAT_DEPTH_IN = 3.2
+const MOUTHPIECE_ASSET_PATH = '/Mouthpiece Subassembly.glb'
+const MOUTHPIECE_MODEL_ROTATION_X_RAD = Math.PI / 2
+const MOUTHPIECE_SEAT_DEPTH_IN = 3.055
+const MOUTHPIECE_PLACEMENT_OFFSET_IN = 3.58
 const MOUTHPIECE_STANDARD_CENTER_OFFSET_IN = 1
-const MOUTHPIECE_VERTICAL_DROP_IN = 0.35
+const MOUTHPIECE_VERTICAL_DROP_IN = 0.305
 
 export type RinglockLedgerInstance = {
   id: string
@@ -82,7 +85,7 @@ export function RinglockLedgers({
   const mouthpieceMeshRef = useRef<THREE.InstancedMesh>(null)
 
   const tubeRadiusFt = inchesToFeet(v.tubeOuterDiameterIn) / 2
-  const mouthpieceAsset = useGLTF('/Mouthpiece.gltf')
+  const mouthpieceAsset = useGLTF(MOUTHPIECE_ASSET_PATH)
   // Selection tolerance: make click target significantly thicker than the visual tube.
   // Ledgers are horizontal and often partially occluded by vertical standard pick proxies
   // when viewed from an angle, so we use a generous radius to ensure they remain clickable
@@ -216,13 +219,18 @@ export function RinglockLedgers({
     )
   }, [tubePickRadiusFt, v.tubeRadialSegments])
 
-  const { mouthpieceGeometry, mouthpieceSeatDepthFt } = useMemo(() => {
+  const { mouthpieceGeometry, mouthpiecePlacementOffsetFt, mouthpieceSeatDepthFt } = useMemo(() => {
     const geoms: THREE.BufferGeometry[] = []
     mouthpieceAsset.scene.updateMatrixWorld(true)
     mouthpieceAsset.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh) || !object.geometry) return
-      const geometry = object.geometry.clone()
+      const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone()
       geometry.applyMatrix4(object.matrixWorld)
+      for (const attributeName of Object.keys(geometry.attributes)) {
+        if (attributeName !== 'position') {
+          geometry.deleteAttribute(attributeName)
+        }
+      }
       geoms.push(geometry)
     })
 
@@ -232,10 +240,15 @@ export function RinglockLedgers({
     if (!positionAttr) {
       return {
         mouthpieceGeometry: merged,
+        mouthpiecePlacementOffsetFt: inchesToFeet(MOUTHPIECE_PLACEMENT_OFFSET_IN),
         mouthpieceSeatDepthFt: inchesToFeet(1),
       }
     }
 
+    // The replacement subassembly GLB is authored with a different local axis
+    // convention than the previous mouthpiece asset. Rotate it into the same
+    // frame before applying the existing feet conversion and placement logic.
+    merged.applyMatrix4(new THREE.Matrix4().makeRotationX(MOUTHPIECE_MODEL_ROTATION_X_RAD))
     merged.applyMatrix4(new THREE.Matrix4().makeScale(FEET_PER_METER, FEET_PER_METER, FEET_PER_METER))
     merged.computeVertexNormals()
     let bounds = new THREE.Box3().setFromBufferAttribute(merged.getAttribute('position') as THREE.BufferAttribute)
@@ -260,6 +273,7 @@ export function RinglockLedgers({
 
     return {
       mouthpieceGeometry: merged,
+      mouthpiecePlacementOffsetFt: inchesToFeet(MOUTHPIECE_PLACEMENT_OFFSET_IN),
       mouthpieceSeatDepthFt: inchesToFeet(MOUTHPIECE_SEAT_DEPTH_IN),
     }
   }, [mouthpieceAsset.scene])
@@ -377,7 +391,7 @@ export function RinglockLedgers({
       const mouthpieceMesh = mouthpieceMeshRef.current
       if (!mouthpieceMesh) return startIndex
       let index = startIndex
-      const mouthpieceOffsetFt = mouthpieceSeatDepthFt
+      const mouthpieceOffsetFt = mouthpiecePlacementOffsetFt
       for (const ledger of list) {
         tmpDir.subVectors(ledger.end, ledger.start)
         const length = tmpDir.length()
@@ -410,7 +424,7 @@ export function RinglockLedgers({
       mouthpieceMeshRef.current.count = mouthpieceIndex
       mouthpieceMeshRef.current.instanceMatrix.needsUpdate = true
     }
-  }, [mouthpieceSeatDepthFt, plainLedgers, trusses])
+  }, [mouthpiecePlacementOffsetFt, mouthpieceSeatDepthFt, plainLedgers, trusses])
 
   // Find selected ledgers for visual feedback
   const selectedLedgers = useMemo(() => {

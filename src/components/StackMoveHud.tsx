@@ -30,7 +30,7 @@ export function StackMoveHud() {
 					{isAngleLocked && <span className="hud-lock-icon">🔒</span>}
 				</span>
 			</div>
-			<span className="hud-hint">Tab ⇌ &nbsp;·&nbsp; Enter places &nbsp;·&nbsp; F8 ortho &nbsp;·&nbsp; Esc cancels</span>
+			<span className="hud-hint">Tab ⇌ &nbsp;·&nbsp; Enter places &nbsp;·&nbsp; {stackOrthoLocked ? 'ORTHO ON · F8 off' : 'F8 ortho on'} &nbsp;·&nbsp; Esc cancels</span>
 		</div>
 	)
 }

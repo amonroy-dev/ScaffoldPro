@@ -44,6 +44,7 @@ export function CatalogSelector({ open, onToggle, onClose, containerRef }: Props
   } = useCatalogSelection()
 
   const isAutoSelectCategory = categoryKey !== 'liveLoads' && AUTO_SELECT_CATEGORIES.has(categoryKey)
+  const hasMultipleManufacturers = manufacturers.length > 1
   const triggerText = isAutoSelectCategory
     ? CATEGORY_LABEL[categoryKey]
     : (categoryKey === 'liveLoads' ? 'Catalog' : (selectedPart ? getCatalogPartDisplayName(categoryKey, selectedPart) : 'Catalog'))
@@ -104,23 +105,27 @@ export function CatalogSelector({ open, onToggle, onClose, containerRef }: Props
 
       {open && (
         <div className="dropdown-menu catalog-menu" role="menu" aria-label="Catalog selector">
-          <div className="dropdown-header">Ringlock Catalog</div>
-
-          <div className="catalog-section">
-            <div className="catalog-section-title">Profile</div>
-            <div className="catalog-pill-row" role="group" aria-label="Profiles">
-              {manufacturers.map((manufacturer) => (
-                <button
-                  key={manufacturer.id}
-                  className={`catalog-pill ${manufacturerId === manufacturer.id ? 'active' : ''}`}
-                  onClick={() => onPickManufacturer(manufacturer.id)}
-                  type="button"
-                >
-                  {manufacturer.name}
-                </button>
-              ))}
-            </div>
+          <div className="dropdown-header">
+            {hasMultipleManufacturers ? 'Scaffold Catalog' : `${selectedManufacturer.name} Catalog`}
           </div>
+
+          {hasMultipleManufacturers && (
+            <div className="catalog-section">
+              <div className="catalog-section-title">Profile</div>
+              <div className="catalog-pill-row" role="group" aria-label="Profiles">
+                {manufacturers.map((manufacturer) => (
+                  <button
+                    key={manufacturer.id}
+                    className={`catalog-pill ${manufacturerId === manufacturer.id ? 'active' : ''}`}
+                    onClick={() => onPickManufacturer(manufacturer.id)}
+                    type="button"
+                  >
+                    {manufacturer.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="catalog-section">
             <div className="catalog-section-title">Category</div>

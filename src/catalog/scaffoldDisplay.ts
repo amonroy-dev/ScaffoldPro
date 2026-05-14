@@ -9,10 +9,7 @@ import {
 } from '../types/scaffoldGraph'
 
 const PROFILE_NAMES: Record<CatalogManufacturerId, string> = {
-  universal: 'Generic Ringlock',
-  layher: 'Ringlock Profile A',
-  brandsafway: 'Ringlock Profile B',
-  direct: 'Ringlock Profile C',
+  universal: 'Universal Manufacturing',
 }
 
 const PLANK_LENGTH_LABELS: Record<string, string> = {
@@ -46,7 +43,7 @@ export function formatLengthFromInches(lengthIn: number) {
 }
 
 export function getCatalogProfileName(manufacturerId: CatalogManufacturerId) {
-  return PROFILE_NAMES[manufacturerId] ?? 'Generic Ringlock'
+  return PROFILE_NAMES[manufacturerId] ?? 'Universal Manufacturing'
 }
 
 function getPlankLengthLabel(partNumber: string) {
@@ -112,6 +109,8 @@ export function getCatalogPartDisplayName(categoryKey: CatalogCategoryKey, part:
 export function getCatalogPartSpecLabel(categoryKey: CatalogCategoryKey, part: CatalogPart) {
   const bits: string[] = []
 
+  if (part.description) bits.push(part.description)
+
   if (categoryKey === 'planks') {
     if (typeof part.plankWidthIn === 'number') bits.push(`${part.plankWidthIn.toFixed(0)}" wide`)
   } else if (typeof part.tubeODIn === 'number' && typeof part.tubeWallIn === 'number') {
@@ -121,7 +120,7 @@ export function getCatalogPartSpecLabel(categoryKey: CatalogCategoryKey, part: C
 
   const weightLb = roundDisplayWeightLb(part.weightLb)
   if (typeof weightLb === 'number') bits.push(`${weightLb} lb`)
-  return bits.join(' | ') || part.description || 'Generic scaffold component'
+  return bits.join(' | ') || 'Generic scaffold component'
 }
 
 export function formatDisplayWeight(weightLb: number | null | undefined) {

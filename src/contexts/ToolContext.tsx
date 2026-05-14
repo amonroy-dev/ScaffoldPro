@@ -252,6 +252,14 @@ export type SerializedScaffoldObject = Omit<ScaffoldObject, 'position' | 'rotati
 /**
  * The persisted project payload (stored under Firestore doc field: `data`).
  */
+export type PermanentDimRecord = {
+	id: string
+	start: { x: number; y: number }
+	end: { x: number; y: number }
+	distance: number
+	offset: number
+}
+
 export interface ProjectDataV1 {
   workspaceMode: WorkspaceMode
   objects: SerializedSceneObject[]
@@ -272,6 +280,8 @@ export interface ProjectDataV1 {
 	scaffoldBlocks?: ScaffoldBlockInstance[]
 	/** Premium drawing package lives in project history but persists separately for Firestore safety. */
 	drawingPackage?: DrawingPackageDocument
+	/** User-placed dimension annotations (move/copy result dims, perimeter dims). */
+	permanentDims?: PermanentDimRecord[]
 }
 
 type HistoryState = {
@@ -300,6 +310,7 @@ function createProjectDataSnapshot(params: {
 	manualLiveLoadPlacements: ManualLiveLoadPlacement[]
 	scaffoldBlocks: ScaffoldBlockInstance[]
 	drawingPackage: DrawingPackageDocument
+	permanentDims: PermanentDimRecord[]
 }): ProjectDataV1 {
 	const {
 		workspaceMode,
@@ -311,6 +322,7 @@ function createProjectDataSnapshot(params: {
 		manualLiveLoadPlacements,
 		scaffoldBlocks,
 		drawingPackage,
+		permanentDims,
 	} = params
 
 	const serializedObjects: SerializedSceneObject[] = objects.map(o => ({
@@ -401,6 +413,7 @@ function createProjectDataSnapshot(params: {
 			}),
 		} : {}),
 			drawingPackage: cloneDrawingPackage(drawingPackage),
+		...(permanentDims.length > 0 ? { permanentDims } : {}),
 	}
 }
 
@@ -477,6 +490,8 @@ interface ToolContextType {
   // Scaffold graph model - stacks and connections
   scaffoldStacks: ScaffoldStack[]
   ledgerConnections: LedgerConnection[]
+  permanentDims: PermanentDimRecord[]
+  setPermanentDims: React.Dispatch<React.SetStateAction<PermanentDimRecord[]>>
 	manualPlankPlacements: ManualPlankPlacement[]
 	manualLiveLoadPlacements: ManualLiveLoadPlacement[]
 
@@ -1161,6 +1176,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 		const [stackMoveStep, setStackMoveStep] = useState<'select' | 'anchor' | 'place' | null>(null)
 		const [stackOrthoLocked, setStackOrthoLocked] = useState(false)
 		const [stackCadHud, setStackCadHud] = useState<StackCadHud | null>(null)
+		const [permanentDims, setPermanentDims] = useState<PermanentDimRecord[]>([])
 	const [blockPlacementWarning, setBlockPlacementWarning] = useState<string | null>(null)
 
   // Default to BUILDING_MODE for the “Site Modeling Workspace” flow.
@@ -5304,9 +5320,10 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 				manualPlankPlacements,
 				manualLiveLoadPlacements,
 				scaffoldBlocks,
-					drawingPackage,
+				drawingPackage,
+				permanentDims,
 			})
-			}, [objects, buildingEntities, scaffoldStacks, ledgerConnections, manualPlankPlacements, manualLiveLoadPlacements, workspaceMode, scaffoldBlocks, drawingPackage])
+			}, [objects, buildingEntities, scaffoldStacks, ledgerConnections, manualPlankPlacements, manualLiveLoadPlacements, workspaceMode, scaffoldBlocks, drawingPackage, permanentDims])
 
 		const clearPendingHistoryCommit = useCallback(() => {
 			if (historyCommitTimerRef.current !== null) {
@@ -5366,6 +5383,8 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 		}, [buildProjectDataSnapshot])
 
 		const applyProjectData = useCallback((data: ProjectDataV1, options?: { resetHistory?: boolean }) => {
+			const isFullReset = options?.resetHistory ?? false
+
     // Reset transient UI state
     setActiveTool('select')
     setSelectedObjectId(null)
@@ -5374,11 +5393,16 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			setSelectedBlockIdRaw(null)
 			setSelectedBlockIdsRaw([])
     setDrawingState(createEmptyDrawingState())
-    setViewMode('perspective')
-    setOrthoDirection(null)
-			publishLiveCameraState(null)
-			clearDrawingViewApplyRequest()
-			storeSetActiveSectionId(null)
+			// Only reset the camera view on a full project load.
+			// Undo/redo (resetHistory: false) must not move the camera — the user may be
+			// in top view or any ortho view and expects only the scaffold data to change.
+			if (isFullReset) {
+				setViewMode('perspective')
+				setOrthoDirection(null)
+				publishLiveCameraState(null)
+				clearDrawingViewApplyRequest()
+				storeSetActiveSectionId(null)
+			}
 		setDxfPreviewEnabled(false)
 
     // Workspace mode
@@ -5628,6 +5652,13 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 			}
 			setDrawingPackageRaw(nextDrawingPackage)
 
+			const nextPermanentDims: PermanentDimRecord[] = Array.isArray((data as any)?.permanentDims)
+				? ((data as any).permanentDims as PermanentDimRecord[]).filter(
+						d => d && typeof d.id === 'string' && d.start && d.end
+					)
+				: []
+			setPermanentDims(nextPermanentDims)
+
 			const normalizedSnapshot = createProjectDataSnapshot({
 				workspaceMode: data.workspaceMode === 'SCAFFOLD_MODE' ? 'SCAFFOLD_MODE' : 'BUILDING_MODE',
 				objects: nextObjects,
@@ -5638,6 +5669,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 				manualLiveLoadPlacements: nextManualLiveLoadPlacements,
 				scaffoldBlocks: nextBlocks,
 				drawingPackage: nextDrawingPackage,
+				permanentDims: nextPermanentDims,
 			})
 
 			if (options?.resetHistory ?? true) {
@@ -5646,7 +5678,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
 				lastCommittedHistorySignatureRef.current = getProjectDataSignature(normalizedSnapshot)
 				clearPendingHistoryCommit()
 			}
-		}, [clearPendingHistoryCommit, resetHistoryToSnapshot, setActiveTool])
+		}, [clearPendingHistoryCommit, resetHistoryToSnapshot, setActiveTool, setPermanentDims])
 
 		const loadProjectData = useCallback((data: ProjectDataV1) => {
 			applyProjectData(data, { resetHistory: true })
@@ -5840,6 +5872,8 @@ export function ToolProvider({ children }: { children: ReactNode }) {
       setOrthoDirection,
       saveCameraStateRef,
       requestHomeViewRef,
+      permanentDims,
+      setPermanentDims,
       addPerimeterDimsRef,
       clearSelectedDimsRef,
       cameraTransitioning,

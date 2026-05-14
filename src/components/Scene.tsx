@@ -186,6 +186,7 @@ export function Scene() {
     activeTool,
     drawingState,
     objects,
+    scaffoldStacks,
     workspaceMode,
 		blockToolSettings,
 			dxfPreviewEnabled,
@@ -296,26 +297,38 @@ export function Scene() {
     zoom: number
   } | null>(null)
 
-  // Compute bounding box that encompasses ALL scene objects for "fit all" framing
-  // Z-UP: Objects sit on XY plane at Z=0, extend upward in +Z
+  // Compute bounding box that encompasses ALL scene content for "fit all" framing.
+  // Z-UP: Objects sit on XY plane at Z=0, extend upward in +Z.
   const sceneBoundingBox = useMemo(() => {
-    if (objects.length === 0) {
-			// No objects yet (new project) — frame a typical building footprint.
-			// User expectation: ~30x30x30ft should be comfortably visible in the initial iso/ortho view.
-			return new THREE.Box3(new THREE.Vector3(-15, -15, 0), new THREE.Vector3(15, 15, 30))
-    }
-
-    // Start with an empty box and expand to include all objects
     const box = new THREE.Box3()
+    let hasContent = false
+
+    // Building scene objects (walls, masses, etc.)
     for (const obj of objects) {
       const half = obj.dimensions.clone().multiplyScalar(0.5)
-      const objMin = obj.position.clone().sub(half)
-      const objMax = obj.position.clone().add(half)
-      box.expandByPoint(objMin)
-      box.expandByPoint(objMax)
+      box.expandByPoint(obj.position.clone().sub(half))
+      box.expandByPoint(obj.position.clone().add(half))
+      hasContent = true
     }
+
+    // Scaffold stacks — use grid XY footprint + estimated height per segment.
+    // US99 (9.75 ft) is the tallest standard; 9.75 ft/segment is a safe overestimate
+    // that guarantees the full stack height is always framed.
+    for (const stack of scaffoldStacks) {
+      const { x, y, z } = stack.gridPosition
+      const heightFt = Math.max(1, stack.standardSegments.length) * 9.75
+      box.expandByPoint(new THREE.Vector3(x, y, z))
+      box.expandByPoint(new THREE.Vector3(x, y, z + heightFt))
+      hasContent = true
+    }
+
+    if (!hasContent) {
+      // New/empty project — frame a typical building footprint so the grid is visible.
+      return new THREE.Box3(new THREE.Vector3(-15, -15, 0), new THREE.Vector3(15, 15, 30))
+    }
+
     return box
-  }, [objects])
+  }, [objects, scaffoldStacks])
 
   // For ViewCube/Home, we want to frame all objects
   const focusBox = sceneBoundingBox
@@ -326,6 +339,7 @@ export function Scene() {
   useEffect(() => {
     focusBoxRef.current = focusBox
   }, [focusBox])
+
 	const savedViewMap = useMemo(() => new Map(drawingPackage.savedViews.map(view => [view.id, view])), [drawingPackage.savedViews])
 	const activeSection = useMemo(
 		() => drawingPackage.sections.find(section => section.id === activeDrawingSectionId) ?? null,
@@ -425,6 +439,11 @@ export function Scene() {
 		if (!canvas) return
 		const eventSurface = canvas.parentElement ?? canvas
 
+		// Tracks whether a middle-button press originated inside the canvas viewport.
+		// Persists from mousedown → mouseup → auxclick (auxclick fires after mouseup,
+		// so we cannot use middleMousePanRef which is already cleared by then).
+		let middleDownInCanvas = false
+
 		const preventAuxDefaults = (event: MouseEvent | PointerEvent) => {
 			if (event.button === 1 || event.button === 2) {
 				event.preventDefault()
@@ -451,6 +470,7 @@ export function Scene() {
 		const clearLeftDragModifiers = () => {
 			navigationModifierRef.current = { shiftKey: false, spaceKey: false }
 			middleMousePanRef.current = null
+			middleDownInCanvas = false
 			rightMouseOrbitRef.current = null
 			orbitDragRef.current = null
 			applyNavigationBindings(controlsRef.current)
@@ -533,6 +553,7 @@ export function Scene() {
 					lastX: event.clientX,
 					lastY: event.clientY,
 				}
+				middleDownInCanvas = true  // track that this drag started inside the canvas
 				setCameraNavigationActive(true)
 				event.preventDefault()
 				event.stopPropagation()
@@ -716,6 +737,9 @@ export function Scene() {
 		const endMiddleMousePan = (event: MouseEvent) => {
 			if (event.button === 1 && middleMousePanRef.current !== null) {
 				middleMousePanRef.current = null
+				// Prevent default on mouseup so the browser does not fire auxclick
+				// on whatever element is under the cursor when the drag ends outside the canvas.
+				event.preventDefault()
 				setCameraNavigationActive(false)
 				return
 			}
@@ -731,6 +755,18 @@ export function Scene() {
 			}
 		}
 
+		// Suppress auxclick events that escape the canvas during a middle-button drag.
+		// auxclick fires AFTER mouseup, so middleMousePanRef is already cleared by then —
+		// we rely on the closure variable middleDownInCanvas instead.
+		const suppressEscapedAuxClick = (event: MouseEvent) => {
+			if (event.button === 1 && middleDownInCanvas) {
+				event.preventDefault()
+				event.stopPropagation()
+				event.stopImmediatePropagation?.()
+				middleDownInCanvas = false
+			}
+		}
+
 		eventSurface.addEventListener('mousedown', preventAuxDefaults)
 		eventSurface.addEventListener('pointerdown', preventAuxDefaults)
 		eventSurface.addEventListener('auxclick', preventAuxDefaults)
@@ -740,6 +776,7 @@ export function Scene() {
 		window.addEventListener('mousemove', onMouseMove, true)
 		window.addEventListener('pointermove', onPointerMove, true)
 		window.addEventListener('mouseup', endMiddleMousePan, true)
+		window.addEventListener('auxclick', suppressEscapedAuxClick, true)
 		window.addEventListener('pointerup', endOrbitDrag, true)
 		window.addEventListener('pointercancel', endOrbitDrag, true)
 		window.addEventListener('pointerup', onPointerEnd, true)
@@ -758,6 +795,7 @@ export function Scene() {
 			window.removeEventListener('mousemove', onMouseMove, true)
 			window.removeEventListener('pointermove', onPointerMove, true)
 			window.removeEventListener('mouseup', endMiddleMousePan, true)
+			window.removeEventListener('auxclick', suppressEscapedAuxClick, true)
 			window.removeEventListener('pointerup', endOrbitDrag, true)
 			window.removeEventListener('pointercancel', endOrbitDrag, true)
 			window.removeEventListener('pointerup', onPointerEnd, true)
@@ -1139,6 +1177,26 @@ export function Scene() {
     }
   }, [viewMode, orthoDirection, isOrtho, getDirectionForViewMode])
 
+  // When project data first loads (async from Firebase), scaffold stacks arrive after mount.
+  // Re-frame the camera once on the first render that contains actual content so the user
+  // always lands on a zoom-fit view of the structure, not the default empty-scene position.
+  const hasAutoFramedRef = useRef(false)
+  useEffect(() => {
+    if (hasAutoFramedRef.current) return
+    const hasContent = scaffoldStacks.length > 0 || objects.length > 0
+    if (!hasContent) return
+    hasAutoFramedRef.current = true
+    // Hide canvas, snap to correct position, then fade in — matches ViewCube transition UX.
+    // focusBoxRef is updated by the focusBox useEffect (declared earlier → runs first).
+    setCameraTransitioning(true)
+    positionCameraForViewMode(false)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setCameraTransitioning(false)
+      })
+    })
+  }, [scaffoldStacks, objects, positionCameraForViewMode, setCameraTransitioning])
+
   // Track if this is the initial mount (no transition) vs user-triggered change (smooth transition)
   const isInitialMount = useRef(true)
 
@@ -1172,7 +1230,17 @@ export function Scene() {
 
   // Also position camera after controls mount (when camera type switches)
   // The controls ref is assigned after render, so we need a useEffect that waits
+  const prevIsOrthoRef = useRef(isOrtho)
   useEffect(() => {
+    const didSwitch = prevIsOrthoRef.current !== isOrtho
+    prevIsOrthoRef.current = isOrtho
+
+    // Only reposition when the camera type actually changed (ortho ↔ perspective)
+    // or when there is a pending drawing-view request.
+    // This prevents undo from triggering a zoom-out when savedViewMap gets
+    // a new reference (due to cloneProjectDataSnapshot) without any real view change.
+    if (!didSwitch && !pendingDrawingViewRequestRef.current) return
+
     let cancelled = false
     let attempts = 0
 

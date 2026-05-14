@@ -44,16 +44,17 @@ export function CatalogProvider({
   /** Allow override for tests or future dynamic catalogs. */
   catalog?: Catalog
 }) {
-  const [manufacturerId, setManufacturerIdState] = useState<CatalogManufacturerId>('universal')
+  const defaultManufacturerId = catalog.manufacturers[0]?.id ?? 'universal'
+  const [manufacturerId, setManufacturerIdState] = useState<CatalogManufacturerId>(defaultManufacturerId)
   const [categoryKey, setCategoryKeyState] = useState<CatalogCategoryKey>('standards')
 	  // Intentionally start with NO part selected so users must explicitly choose a part before placing.
 	  const [partId, setPartIdState] = useState<string | null>(null)
 
   const clearSelection = useCallback(() => {
-    setManufacturerIdState('universal')
+    setManufacturerIdState(defaultManufacturerId)
     setCategoryKeyState('standards')
 	    setPartIdState(null)
-  }, [catalog])
+  }, [defaultManufacturerId])
 
   const setManufacturerId = useCallback(
     (id: CatalogManufacturerId) => {

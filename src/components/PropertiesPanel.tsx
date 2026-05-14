@@ -4421,7 +4421,7 @@ export function PropertiesPanel() {
 				return 'Block Generator'
 			}
 			if (selectedDiagonal) {
-				return selectedDiagonal.partNumber ? getGenericPartDisplayName(selectedDiagonal.partNumber, 'braces') : 'Brace Diagonal'
+				return selectedDiagonal.partNumber ?? 'Brace Diagonal'
 			}
 			if (selectedLiveLoad) {
 				return 'Live Load'
@@ -4439,18 +4439,17 @@ export function PropertiesPanel() {
 					// If a stacked segment is selected, show the specific piece.
 					if (selectedStandardSegment?.partNumber) {
 						const { partNumber, segmentIndex, segmentCount } = selectedStandardSegment
-						const displayPart = getGenericPartDisplayName(partNumber, 'standards')
+						const displayPart = partNumber
 						if (segmentCount > 0) return `${displayPart} (${segmentIndex + 1}/${segmentCount})`
 						return displayPart
 					}
 
 					const parts = selectedStacks[0].standardSegments.map(s => String(s?.partNumber ?? '')).filter(Boolean)
-					if (parts.length <= 1) return parts[0] ? getGenericPartDisplayName(parts[0], 'standards') : 'Standard'
+					if (parts.length <= 1) return parts[0] || 'Standard'
 					// More informative than "Top ...": show the full composition.
 					const counts = new Map<string, number>()
 					for (const p of parts) {
-					const displayPart = getGenericPartDisplayName(p, 'standards')
-					counts.set(displayPart, (counts.get(displayPart) ?? 0) + 1)
+					counts.set(p, (counts.get(p) ?? 0) + 1)
 				}
 					const summary = Array.from(counts.entries())
 						.map(([pn, c]) => (c > 1 ? `${pn} x${c}` : pn))
@@ -4460,10 +4459,7 @@ export function PropertiesPanel() {
       return `Standards (${selectedStacks.length})`
     }
     if (selectedLedgerConnection) {
-      return getGenericPartDisplayName(
-        selectedLedgerConnection.ledgerPartNumber,
-        selectedLedgerConnection.ledgerPartNumber.startsWith('UHT') ? 'trusses' : 'ledgers',
-      )
+      return selectedLedgerConnection.ledgerPartNumber
     }
     if (selected) return 'Selection'
     return workspaceMode === 'SCAFFOLD_MODE' ? 'Workspace Defaults' : 'Workspace'
