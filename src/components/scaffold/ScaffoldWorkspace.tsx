@@ -112,11 +112,13 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 	onRemove: () => void
 	onOffsetChange: (newOffset: number) => void
 }) {
-	const { gl, camera } = useThree()
+	const { gl, camera, size } = useThree()
 	const { settings } = useSettings()
 	const [hovered, setHovered] = useState(false)
 	const [dragging, setDragging] = useState(false)
 	const dragRef = useRef<{ initialOffset: number; cursorOffsetAtStart: number } | null>(null)
+	const labelDivRef = useRef<HTMLDivElement>(null)
+	const lastRotRef = useRef(0)
 
 	const snapStep = settings.snapToGrid ? settings.gridSize : 0
 
@@ -231,6 +233,25 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 		}
 	}, [dragging, projectToGround, start.x, start.y, px, py, snapStep, onOffsetChange, gl.domElement])
 
+	// Update label CSS rotation every frame to match the dim line's screen-space direction.
+	// Projects both endpoints into NDC then pixel space so perspective foreshortening
+	// and aspect ratio are both accounted for — works in any camera view.
+	useFrame(() => {
+		if (!labelDivRef.current) return
+		const vA = new THREE.Vector3(start.x, start.y, DIM_Z).project(camera)
+		const vB = new THREE.Vector3(end.x,   end.y,   DIM_Z).project(camera)
+		const sdx = (vB.x - vA.x) * size.width
+		const sdy = -(vB.y - vA.y) * size.height  // flip: NDC Y up, screen Y down
+		let rot = Math.atan2(sdy, sdx) * 180 / Math.PI
+		// Keep text always readable — never upside-down
+		if (rot > 90)  rot -= 180
+		if (rot < -90) rot += 180
+		if (Math.abs(rot - lastRotRef.current) > 0.3) {
+			lastRotRef.current = rot
+			labelDivRef.current.style.transform = `rotate(${rot.toFixed(1)}deg)`
+		}
+	})
+
 	if (!linesObj) return null
 
 	const Ax = start.x + px * offset, Ay = start.y + py * offset
@@ -260,7 +281,10 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 				zIndexRange={[200, 201]}
 				style={{ pointerEvents: 'none', userSelect: 'none' }}
 			>
-				<div className={`perm-dim-label${hovered || dragging ? ' perm-dim-label--active' : ''}`}>
+				<div
+					ref={labelDivRef}
+					className={`perm-dim-label${hovered || dragging ? ' perm-dim-label--active' : ''}`}
+				>
 					<span className="perm-dim-value">{distance.toFixed(2)}</span>
 					<span className="perm-dim-unit"> ft</span>
 					<button
