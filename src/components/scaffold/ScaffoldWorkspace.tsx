@@ -192,6 +192,19 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 		setDragging(true)
 	}, [projectToGround, start.x, start.y, px, py, offset])
 
+	// Keyboard Delete removes this dim while hovered or dragging
+	useEffect(() => {
+		if (!hovered && !dragging) return
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Delete' && e.key !== 'Backspace') return
+			e.stopPropagation()
+			e.preventDefault()
+			onRemove()
+		}
+		window.addEventListener('keydown', onKey, true)
+		return () => window.removeEventListener('keydown', onKey, true)
+	}, [hovered, dragging, onRemove])
+
 	// Global pointermove/up while dragging
 	useEffect(() => {
 		if (!dragging) return
@@ -775,6 +788,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
     setStackOrthoLocked,
     stackCadHud,
     setStackCadHud,
+    addPerimeterDimsRef,
   } = useTool()
 		  const { categoryKey, manufacturerId, selectedManufacturer, selectedPart } = useCatalogSelection()
 
@@ -885,6 +899,55 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		window.addEventListener('keydown', onKey, true)
 		return () => window.removeEventListener('keydown', onKey, true)
 	}, [cancelStackMove, stackEditActionMode])
+
+	// ─── Perimeter dimensions ────────────────────────────────────────────────
+	// Group a list of values into sorted unique buckets within a tolerance.
+	// Standards snap to grid so this mainly handles floating-point fuzz.
+	const PERIM_DIM_GAP = 1.5  // ft from scaffold edge to outside dim line
+
+	useEffect(() => {
+		addPerimeterDimsRef.current = () => {
+			const ids = selectedStackIds
+			if (ids.length < 2) return
+			const positions = scaffoldStacks
+				.filter(s => ids.includes(s.id))
+				.map(s => ({ x: s.gridPosition.x, y: s.gridPosition.y }))
+
+			// Bucket & sort unique values within tolerance
+			const bucketSort = (vals: number[]): number[] => {
+				const sorted = [...vals].sort((a, b) => a - b)
+				const out: number[] = []
+				for (const v of sorted) {
+					if (out.length === 0 || v - out[out.length - 1] > 0.15) out.push(v)
+				}
+				return out
+			}
+
+			const xs = bucketSort(positions.map(p => p.x))
+			const ys = bucketSort(positions.map(p => p.y))
+			const minY = ys[0], maxX = xs[xs.length - 1]
+			const newDims: PermanentDimRecord[] = []
+			const mkId = (tag: string) => `dim-${Date.now()}-${Math.floor(Math.random() * 1e6)}-${tag}`
+
+			// Horizontal dims (X-direction) — placed south of scaffold
+			// Direction east → perp is north (+Y) → negative offset = south
+			for (let i = 0; i < xs.length - 1; i++) {
+				const x0 = xs[i], x1 = xs[i + 1], d = x1 - x0
+				if (d < 0.01) continue
+				newDims.push({ id: mkId(`x${i}`), start: { x: x0, y: minY }, end: { x: x1, y: minY }, distance: d, offset: -PERIM_DIM_GAP })
+			}
+
+			// Vertical dims (Y-direction) — placed east of scaffold
+			// Direction north → perp is west (-X) → negative offset = east
+			for (let i = 0; i < ys.length - 1; i++) {
+				const y0 = ys[i], y1 = ys[i + 1], d = y1 - y0
+				if (d < 0.01) continue
+				newDims.push({ id: mkId(`y${i}`), start: { x: maxX, y: y0 }, end: { x: maxX, y: y1 }, distance: d, offset: -PERIM_DIM_GAP })
+			}
+
+			if (newDims.length > 0) setPermanentDims(prev => [...prev, ...newDims])
+		}
+	}, [addPerimeterDimsRef, selectedStackIds, scaffoldStacks, setPermanentDims])
 
 	// When mode activates, start in 'select' step
 	useEffect(() => {

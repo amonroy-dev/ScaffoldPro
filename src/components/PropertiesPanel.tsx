@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import * as THREE from 'three'
-import { RotateCcw, Copy, Eye, LayoutGrid, Pencil, Check, X, Box, Move } from 'lucide-react'
+import { RotateCcw, Copy, Eye, LayoutGrid, Pencil, Check, X, Box, Move, Ruler } from 'lucide-react'
 import { useTool, type SceneObject } from '../contexts/ToolContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { useScaffoldBaseSettings } from '../contexts/ScaffoldBaseSettings'
@@ -768,6 +768,7 @@ export function PropertiesPanel() {
     setStackEditActionMode,
     stackMoveStep,
     stackOrthoLocked,
+    addPerimeterDimsRef,
   } = useTool()
 
 	const selectedBlock = useMemo(() => {
@@ -4655,6 +4656,16 @@ export function PropertiesPanel() {
 							>
 								<Copy size={16} />
 							</button>
+							{selectedStackIds.length >= 2 && (
+								<button
+									className="properties-icon-btn"
+									title="Add perimeter dimensions to selected standards"
+									onClick={() => addPerimeterDimsRef.current?.()}
+									type="button"
+								>
+									<Ruler size={16} />
+								</button>
+							)}
 						</>
 					)}
 

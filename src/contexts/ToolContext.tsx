@@ -597,6 +597,8 @@ interface ToolContextType {
   saveCameraStateRef: MutableRefObject<(() => void) | null>
   // Callback ref that Scene.tsx sets so App.tsx can explicitly request the home perspective reset.
   requestHomeViewRef: MutableRefObject<(() => void) | null>
+  // Callback ref set by ScaffoldWorkspace — adds perimeter dims for the current selection
+  addPerimeterDimsRef: MutableRefObject<(() => void) | null>
   // Camera transition state - used to hide canvas during camera type switch
   cameraTransitioning: boolean
   setCameraTransitioning: (transitioning: boolean) => void
@@ -1410,6 +1412,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
   // App.tsx calls this before switching views to prevent the "jump"
   const saveCameraStateRef = useRef<(() => void) | null>(null)
   const requestHomeViewRef = useRef<(() => void) | null>(null)
+  const addPerimeterDimsRef = useRef<(() => void) | null>(null)
 
   // Camera transition state - briefly hide canvas during camera type switch to mask "bad frame"
   const [cameraTransitioning, setCameraTransitioning] = useState(false)
@@ -5834,6 +5837,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
       setOrthoDirection,
       saveCameraStateRef,
       requestHomeViewRef,
+      addPerimeterDimsRef,
       cameraTransitioning,
       setCameraTransitioning,
 			cameraNavigationActive,
