@@ -599,6 +599,8 @@ interface ToolContextType {
   requestHomeViewRef: MutableRefObject<(() => void) | null>
   // Callback ref set by ScaffoldWorkspace — adds perimeter dims for the current selection
   addPerimeterDimsRef: MutableRefObject<(() => void) | null>
+  // Callback ref set by ScaffoldWorkspace — clears dim annotation selection
+  clearSelectedDimsRef: MutableRefObject<(() => void) | null>
   // Camera transition state - used to hide canvas during camera type switch
   cameraTransitioning: boolean
   setCameraTransitioning: (transitioning: boolean) => void
@@ -1413,6 +1415,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
   const saveCameraStateRef = useRef<(() => void) | null>(null)
   const requestHomeViewRef = useRef<(() => void) | null>(null)
   const addPerimeterDimsRef = useRef<(() => void) | null>(null)
+  const clearSelectedDimsRef = useRef<(() => void) | null>(null)
 
   // Camera transition state - briefly hide canvas during camera type switch to mask "bad frame"
   const [cameraTransitioning, setCameraTransitioning] = useState(false)
@@ -5838,6 +5841,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
       saveCameraStateRef,
       requestHomeViewRef,
       addPerimeterDimsRef,
+      clearSelectedDimsRef,
       cameraTransitioning,
       setCameraTransitioning,
 			cameraNavigationActive,

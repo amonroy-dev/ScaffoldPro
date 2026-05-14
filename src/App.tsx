@@ -86,6 +86,7 @@ export function AppContent() {
 		redo,
 		canUndo,
 		canRedo,
+		clearSelectedDimsRef,
 	} = useTool()
 	const { categoryKey, partId, setPartId, setCategoryKey } = useCatalogSelection()
 	const isOrtho = viewMode !== 'perspective'
@@ -255,13 +256,17 @@ export function AppContent() {
         return
       }
 
-      // Otherwise, clear any selected object
+      // Otherwise, clear any selected object/stack/dim
       setSelectedObjectId(null)
+      setSelectedStackIds([])
+      clearSelectedDimsRef.current?.()
     }
     window.addEventListener('keydown', onKeyDown, true) // capture phase
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [
     setSelectedObjectId,
+    setSelectedStackIds,
+    clearSelectedDimsRef,
     buildingHostedPatternPreview,
     setBuildingHostedPatternPreview,
     setSelectedHostedPatternInstance,

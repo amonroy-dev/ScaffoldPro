@@ -104,19 +104,27 @@ const DIM_INITIAL_OFFSET = 0.45 // default perpendicular offset for new dims (ft
 const DIM_TICK_HALF = 0.18     // half-length of the slash tick (ft)
 
 /** Permanent engineering-drawing style dimension annotation with drag-to-reposition. */
-function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetChange }: {
+function PermanentDimension({ start, end, distance, offset, isSelected, onSelect, onOffsetChange }: {
 	start: { x: number; y: number }
 	end: { x: number; y: number }
 	distance: number
 	offset: number              // signed perpendicular offset; drag changes this
-	onRemove: () => void
+	isSelected: boolean
+	onSelect: (shiftKey: boolean) => void
 	onOffsetChange: (newOffset: number) => void
 }) {
 	const { gl, camera, size } = useThree()
 	const { settings } = useSettings()
 	const [hovered, setHovered] = useState(false)
 	const [dragging, setDragging] = useState(false)
-	const dragRef = useRef<{ initialOffset: number; cursorOffsetAtStart: number } | null>(null)
+	const dragRef = useRef<{
+		initialOffset: number
+		cursorOffsetAtStart: number
+		startClientX: number
+		startClientY: number
+		shiftKey: boolean
+		hasMoved: boolean
+	} | null>(null)
 	const labelDivRef = useRef<HTMLDivElement>(null)
 	const lastRotRef = useRef(0)
 
@@ -154,13 +162,17 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 		return new THREE.LineSegments(geo, mat)
 	}, [start.x, start.y, end.x, end.y, offset, px, py, ux, uy, len])
 
-	// Hover / drag colour feedback
+	// Line colour: orange when selected, dark slate otherwise; lighter on hover/drag
 	useEffect(() => {
 		if (!linesObj) return
-		;(linesObj.material as THREE.LineBasicMaterial).color.set(
-			dragging ? '#93c5fd' : hovered ? '#60a5fa' : '#3b82f6'
-		)
-	}, [hovered, dragging, linesObj])
+		let color: string
+		if (isSelected) {
+			color = hovered || dragging ? '#fb923c' : '#ea580c'
+		} else {
+			color = hovered || dragging ? '#64748b' : '#1e293b'
+		}
+		;(linesObj.material as THREE.LineBasicMaterial).color.set(color)
+	}, [hovered, dragging, isSelected, linesObj])
 
 	useEffect(() => () => {
 		linesObj?.geometry.dispose()
@@ -181,38 +193,39 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 			? { x: pt.x, y: pt.y } : null
 	}, [gl.domElement, camera])
 
-	// Begin drag on hit-mesh pointerdown
+	// Begin drag on hit-mesh pointerdown; also records info needed for click detection
 	const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
 		e.stopPropagation()
 		e.nativeEvent.stopPropagation()
 		e.nativeEvent.preventDefault()
 		const pt = projectToGround(e.nativeEvent.clientX, e.nativeEvent.clientY)
 		if (!pt) return
-		// Record signed perp offset of cursor relative to baseline at drag start
 		const cursorOff = (pt.x - start.x) * px + (pt.y - start.y) * py
-		dragRef.current = { initialOffset: offset, cursorOffsetAtStart: cursorOff }
+		dragRef.current = {
+			initialOffset: offset,
+			cursorOffsetAtStart: cursorOff,
+			startClientX: e.nativeEvent.clientX,
+			startClientY: e.nativeEvent.clientY,
+			shiftKey: e.nativeEvent.shiftKey,
+			hasMoved: false,
+		}
 		setDragging(true)
 	}, [projectToGround, start.x, start.y, px, py, offset])
 
-	// Keyboard Delete removes this dim while hovered or dragging
-	useEffect(() => {
-		if (!hovered && !dragging) return
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key !== 'Delete' && e.key !== 'Backspace') return
-			e.stopPropagation()
-			e.preventDefault()
-			onRemove()
-		}
-		window.addEventListener('keydown', onKey, true)
-		return () => window.removeEventListener('keydown', onKey, true)
-	}, [hovered, dragging, onRemove])
-
-	// Global pointermove/up while dragging
+	// Global pointermove/up while dragging; pointerup fires onSelect if pointer never moved
 	useEffect(() => {
 		if (!dragging) return
-		gl.domElement.style.cursor = 'grabbing'
 		const onMove = (e: PointerEvent) => {
 			if (!dragRef.current) return
+			if (!dragRef.current.hasMoved) {
+				const mdx = e.clientX - dragRef.current.startClientX
+				const mdy = e.clientY - dragRef.current.startClientY
+				if (Math.sqrt(mdx * mdx + mdy * mdy) > 4) {
+					dragRef.current.hasMoved = true
+					gl.domElement.style.cursor = 'grabbing'
+				}
+			}
+			if (!dragRef.current.hasMoved) return
 			const pt = projectToGround(e.clientX, e.clientY)
 			if (!pt) return
 			const cursorOff = (pt.x - start.x) * px + (pt.y - start.y) * py
@@ -221,8 +234,12 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 			onOffsetChange(snapped)
 		}
 		const onUp = () => {
+			if (dragRef.current && !dragRef.current.hasMoved) {
+				onSelect(dragRef.current.shiftKey)
+			}
 			setDragging(false)
 			dragRef.current = null
+			gl.domElement.style.cursor = ''
 		}
 		window.addEventListener('pointermove', onMove)
 		window.addEventListener('pointerup', onUp)
@@ -231,7 +248,7 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 			window.removeEventListener('pointermove', onMove)
 			window.removeEventListener('pointerup', onUp)
 		}
-	}, [dragging, projectToGround, start.x, start.y, px, py, snapStep, onOffsetChange, gl.domElement])
+	}, [dragging, projectToGround, start.x, start.y, px, py, snapStep, onOffsetChange, onSelect, gl.domElement])
 
 	// Update label CSS rotation every frame to match the dim line's screen-space direction.
 	// Projects both endpoints into NDC then pixel space so perspective foreshortening
@@ -259,6 +276,13 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 	const midX = (Ax + Bx) / 2, midY = (Ay + By) / 2
 	const dimAngle = Math.atan2(uy, ux)
 
+	// Float label on the OUTER side of the dim line (away from the scaffold, same
+	// direction as the offset from the baseline). Standard CAD convention.
+	const TEXT_LIFT = 0.38  // ft — perpendicular gap between dim line and text
+	const dimSign = Math.sign(offset) || 1
+	const labelX = midX + px * TEXT_LIFT * dimSign
+	const labelY = midY + py * TEXT_LIFT * dimSign
+
 	return (
 		<>
 			<primitive object={linesObj} raycast={() => null} />
@@ -276,22 +300,16 @@ function PermanentDimension({ start, end, distance, offset, onRemove, onOffsetCh
 			</mesh>
 
 			<Html
-				position={[midX, midY, DIM_Z + 0.05]}
+				position={[labelX, labelY, DIM_Z + 0.05]}
 				center
 				zIndexRange={[200, 201]}
 				style={{ pointerEvents: 'none', userSelect: 'none' }}
 			>
 				<div
 					ref={labelDivRef}
-					className={`perm-dim-label${hovered || dragging ? ' perm-dim-label--active' : ''}`}
+					className={`perm-dim-label${isSelected ? ' perm-dim-label--selected' : ''}`}
 				>
-					<span className="perm-dim-value">{distance.toFixed(2)}</span>
-					<span className="perm-dim-unit"> ft</span>
-					<button
-						className="perm-dim-close"
-						style={{ pointerEvents: 'auto' }}
-						onClick={onRemove}
-					>×</button>
+					{distance.toFixed(1)} ft
 				</div>
 			</Html>
 		</>
@@ -813,6 +831,7 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
     stackCadHud,
     setStackCadHud,
     addPerimeterDimsRef,
+    clearSelectedDimsRef,
   } = useTool()
 		  const { categoryKey, manufacturerId, selectedManufacturer, selectedPart } = useCatalogSelection()
 
@@ -859,6 +878,27 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 		offset: number   // perpendicular offset in ft (draggable)
 	}
 	const [permanentDims, setPermanentDims] = useState<PermanentDimRecord[]>([])
+	const [selectedDimIds, setSelectedDimIds] = useState<string[]>([])
+
+	// Delete selected dims (capture phase — runs before App.tsx bubble-phase delete handler)
+	useEffect(() => {
+		if (selectedDimIds.length === 0) return
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Delete' && e.key !== 'Backspace') return
+			if (isTextInputFocused()) return
+			e.stopPropagation()
+			e.preventDefault()
+			setPermanentDims(prev => prev.filter(d => !selectedDimIds.includes(d.id)))
+			setSelectedDimIds([])
+		}
+		window.addEventListener('keydown', onKey, true)
+		return () => window.removeEventListener('keydown', onKey, true)
+	}, [selectedDimIds])
+
+	// Keep clearSelectedDimsRef wired so App.tsx Escape handler can clear dim selection
+	useEffect(() => {
+		clearSelectedDimsRef.current = () => setSelectedDimIds([])
+	}, [clearSelectedDimsRef])
 
 	// ─── Stack move/copy state ───────────────────────────────────────────────
 	type StackMarqueeState = {
@@ -2934,12 +2974,34 @@ export function ScaffoldWorkspace({ clippingPlanes }: ScaffoldWorkspaceProps) {
 						end={dim.end}
 						distance={dim.distance}
 						offset={dim.offset}
-						onRemove={() => setPermanentDims(prev => prev.filter(d => d.id !== dim.id))}
+						isSelected={selectedDimIds.includes(dim.id)}
+						onSelect={(shiftKey) => setSelectedDimIds(prev =>
+							shiftKey
+								? prev.includes(dim.id) ? prev.filter(id => id !== dim.id) : [...prev, dim.id]
+								: [dim.id]
+						)}
 						onOffsetChange={newOffset => setPermanentDims(prev =>
 							prev.map(d => d.id === dim.id ? { ...d, offset: newOffset } : d)
 						)}
 					/>
 				))}
+
+				{/* Selection rings — orange ring around each selected standard, always on top */}
+				{selectedStackIds.map(sid => {
+					const stack = scaffoldStacks.find(s => s.id === sid)
+					if (!stack) return null
+					return (
+						<mesh
+							key={`sel-ring-${sid}`}
+							position={[stack.gridPosition.x, stack.gridPosition.y, 0.1]}
+							renderOrder={10}
+							raycast={() => null}
+						>
+							<ringGeometry args={[0.16, 0.34, 48]} />
+							<meshBasicMaterial color="#f97316" transparent opacity={1} depthWrite={false} depthTest={false} />
+						</mesh>
+					)
+				})}
 
 				{/* Distance line + midpoint label during 'place' step */}
 				{stackMoveStep === 'place' && stackMoveAnchor && stackPreviewOffset && stackCadHud && (
